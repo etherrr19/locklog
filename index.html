@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="lock log 🔒">
-<title>lock log 🔒</title>
+<meta name="apple-mobile-web-app-title" content="lock log">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/favicon.png">
+<title>lock log</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fredoka+One&display=swap" rel="stylesheet">
 <style>
 /* ══════════ THEMES ══════════ */
@@ -19,7 +21,8 @@ body[data-theme="soft-puppy"] {
   --c-cream:#fdf8f0; --c-white:#ffffff;
   --c-text:#5a4a5a; --c-textlt:#9a8a9a;
   --c-border:#ecddf0;
-  --c-shadow:rgba(180,150,190,0.15); --c-shadowm:rgba(180,150,190,0.28);
+  --c-shadow:rgba(180,150,190,0.15);
+  --c-shadowm:rgba(180,150,190,0.28);
   --c-bg:linear-gradient(135deg,#fdf0f8 0%,#f0f8fd 50%,#f8fdf0 100%);
   --c-accent:#c9a0dc; --c-btn:linear-gradient(135deg,#f0c0d8,#c9a0dc);
   --c-future:rgba(255,255,255,0.45); --c-tile-empty:rgba(255,255,255,0.55);
@@ -120,8 +123,9 @@ body {
   font-family:'Fredoka One',cursive;
   font-size:26px; color:var(--c-text); letter-spacing:0.5px;
   flex-shrink:0;
+  display:flex; align-items:center; gap:8px;
 }
-.header-title span { color:var(--c-accent); }
+.header-logo { height:32px; width:auto; display:block; }
 .header-pins {
   display:flex; gap:6px; align-items:center;
   flex-wrap:nowrap; overflow:hidden;
@@ -135,19 +139,16 @@ body {
   color:var(--c-text);
   box-shadow:0 2px 8px var(--c-shadowm);
   white-space:nowrap;
-  display:flex; align-items:center; gap:3px;
+  display:flex; align-items:center; gap:4px;
   flex-shrink:0;
 }
-.pin-pill-icon { font-size:13px; }
-.pin-pill-val {
-  font-family:'Fredoka One',cursive;
-  font-size:14px; line-height:1;
-}
-.pin-pill-lbl { font-size:9px; color:var(--c-textlt); font-weight:800; }
+.pin-pill-icon { font-size:13px; display:flex; align-items:center; }
+.pin-pill-icon img { width:14px; height:14px; display:block; }
+.pin-pill-val { font-family:'Fredoka One',cursive; font-size:14px; line-height:1; }
 
 /* ── STAT TILES ROW ── */
 .stat-tiles-wrap {
-  padding:0 20px 4px;
+  padding:4px 20px 6px;
   overflow-x:auto; scrollbar-width:none;
   display:flex; gap:10px;
   -webkit-overflow-scrolling:touch;
@@ -169,7 +170,8 @@ body {
 }
 .stat-tile:active { transform:scale(0.94); }
 .stat-tile.pinned { box-shadow:0 2px 10px var(--c-shadow), 0 0 0 2px var(--c-accent); }
-.stat-tile-icon { font-size:16px; line-height:1; margin-bottom:3px; }
+.stat-tile-icon { font-size:16px; line-height:1; margin-bottom:3px; display:flex; align-items:center; justify-content:center; }
+.stat-tile-icon img { width:18px; height:18px; display:block; }
 .stat-tile-val {
   font-family:'Fredoka One',cursive;
   font-size:22px; color:var(--c-text); line-height:1;
@@ -179,19 +181,12 @@ body {
   color:var(--c-textlt); letter-spacing:0.4px;
   margin-top:3px; line-height:1.2;
 }
-.stat-tile-pin {
-  position:absolute; top:5px; right:6px;
-  font-size:9px; opacity:0.7;
-  line-height:1;
-}
-/* long-press ripple */
+.stat-tile-pin { position:absolute; top:5px; right:6px; font-size:9px; opacity:0.7; line-height:1; }
 .stat-tile.pressing { transform:scale(0.94); box-shadow:0 0 0 3px var(--c-accent); }
+.stat-hint { font-size:10px; font-weight:700; color:var(--c-textlt); text-align:center; padding:2px 20px 8px; letter-spacing:0.3px; }
 
 /* ── MONTH NAV ── */
-.month-nav {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:10px 20px 14px;
-}
+.month-nav { display:flex; align-items:center; justify-content:space-between; padding:10px 20px 14px; }
 .month-label { font-family:'Fredoka One',cursive; font-size:22px; color:var(--c-text); }
 .nav-btn {
   width:36px; height:36px; border-radius:50%; border:none;
@@ -214,11 +209,7 @@ body {
 .calendar-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; }
 
 /* ── TILE ── */
-.tile {
-  aspect-ratio:1; border-radius:var(--radius-tile);
-  position:relative; cursor:pointer;
-  transition:transform 0.12s; overflow:visible;
-}
+.tile { aspect-ratio:1; border-radius:var(--radius-tile); position:relative; cursor:pointer; transition:transform 0.12s; overflow:visible; }
 .tile:active { transform:scale(0.9); }
 .tile.empty { background:transparent; cursor:default; pointer-events:none; }
 .tile.future,.tile.before-start { cursor:default; pointer-events:none; }
@@ -227,23 +218,20 @@ body {
   border-radius:calc(var(--radius-tile) + 2px);
   border:2.5px solid var(--today-ring); pointer-events:none;
 }
-.tile-inner {
-  position:absolute; inset:0;
-  border-radius:var(--radius-tile);
-  box-shadow:0 2px 8px var(--c-shadow);
-}
+.tile-inner { position:absolute; inset:0; border-radius:var(--radius-tile); box-shadow:0 2px 8px var(--c-shadow); }
 .tile-bg-none      { background:var(--c-none); }
 .tile-bg-orgasm    { background:var(--c-orgasm); }
 .tile-bg-ruined    { background:var(--c-ruined); }
 .tile-bg-forbidden { background:var(--c-forbid); }
-.tile-bg-edged     { background:var(--c-none); }
 .tile-bg-future    { background:var(--c-future); }
 .tile-bg-before    { background:var(--c-tile-empty); opacity:0.4; }
 
 .tile-date { position:absolute; top:5px; left:7px; font-size:11px; font-weight:800; color:var(--c-text); opacity:0.7; z-index:2; line-height:1; }
-.tile-cage { position:absolute; top:4px; right:5px; font-size:11px; z-index:3; line-height:1; }
+.tile-cage { position:absolute; top:4px; right:5px; font-size:11px; z-index:3; line-height:1; display:flex; align-items:center; justify-content:center; }
+.tile-cage img { width:16px; height:16px; display:block; filter:drop-shadow(0 1px 2px rgba(0,0,0,0.2)); }
 .tile-stickers { position:absolute; top:25%; left:0; right:0; bottom:0; z-index:4; pointer-events:none; overflow:hidden; border-radius:0 0 var(--radius-tile) var(--radius-tile); }
 .sticker { position:absolute; line-height:1; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.22)); font-size:17px; }
+.sticker img { width:19px; height:19px; display:block; filter:drop-shadow(0 1px 3px rgba(0,0,0,0.22)); }
 
 /* ── TOAST ── */
 .toast {
@@ -301,13 +289,14 @@ body {
   background:var(--c-white); font-family:'Nunito',sans-serif;
   font-size:13px; font-weight:700; color:var(--c-text); cursor:pointer;
   transition:all 0.15s; box-shadow:0 1px 4px var(--c-shadow);
+  display:inline-flex; align-items:center; gap:6px;
 }
+.pill img { width:18px; height:18px; display:block; }
 .pill:active { transform:scale(0.93); }
 .pill.sel-none   { background:var(--c-none);   border-color:var(--c-none-d); }
 .pill.sel-orgasm { background:var(--c-orgasm); border-color:var(--c-orgasm-d); }
 .pill.sel-ruined { background:var(--c-ruined); border-color:var(--c-ruined-d); }
 .pill.sel-forbid { background:var(--c-forbid); border-color:var(--c-forbid-d); }
-.pill.sel-lav    { background:var(--c-lav);    border-color:var(--c-lav-d); }
 .pill.sel-def    { background:var(--c-lav);    border-color:var(--c-accent); }
 
 /* sticker picker */
@@ -321,6 +310,7 @@ body {
   transition:all 0.15s; position:relative;
   flex-shrink:0; margin-bottom:18px;
 }
+.sticker-pick img { width:28px; height:28px; }
 .sticker-pick:active { transform:scale(0.88); }
 .sticker-pick.selected { border-color:var(--c-accent); background:var(--c-lav); }
 .sticker-label {
@@ -373,7 +363,8 @@ body {
   transition:background 0.15s; border:none; background:transparent;
 }
 .nav-item.active { background:var(--c-nav-act); }
-.nav-icon { font-size:22px; line-height:1; }
+.nav-icon { font-size:22px; line-height:1; display:flex; align-items:center; justify-content:center; }
+.nav-icon img { width:24px; height:24px; display:block; }
 .nav-text { font-size:10px; font-weight:800; color:var(--c-textlt); letter-spacing:0.3px; }
 .nav-item.active .nav-text { color:var(--c-nav-acttxt); }
 
@@ -383,21 +374,57 @@ body {
 
 /* ── SETTINGS ── */
 .settings-section { margin-bottom:24px; }
-.settings-title { font-family:'Fredoka One',cursive; font-size:16px; margin-bottom:10px; color:var(--c-text); }
+.settings-title { font-family:'Fredoka One',cursive; font-size:16px; margin-bottom:10px; color:var(--c-text); display:flex; align-items:center; gap:6px; }
+.settings-title img { width:18px; height:18px; }
 .cage-row {
   display:flex; align-items:center; gap:10px; background:var(--c-white);
   border-radius:14px; padding:10px 14px; margin-bottom:8px;
   box-shadow:0 1px 4px var(--c-shadow);
 }
-.cage-icon-preview { font-size:22px; width:32px; text-align:center; }
+.cage-icon-preview {
+  width:40px; height:40px; border-radius:10px; background:var(--c-cream);
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; cursor:pointer; border:2px solid var(--c-border);
+  transition:all 0.15s; padding:0;
+}
+.cage-icon-preview:active { transform:scale(0.92); }
+.cage-icon-preview img { width:30px; height:30px; }
 .cage-name-input { flex:1; border:none; outline:none; font-family:'Nunito',sans-serif; font-size:14px; font-weight:700; color:var(--c-text); background:transparent; }
+.cage-remove-btn {
+  width:28px; height:28px; border-radius:50%;
+  border:none; background:var(--c-cream);
+  color:var(--c-textlt); font-size:14px; font-weight:800;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; flex-shrink:0; transition:all 0.15s;
+}
+.cage-remove-btn:active { transform:scale(0.9); background:var(--c-forbid); }
+.add-cage-btn {
+  width:100%; padding:12px; border-radius:14px;
+  border:2px dashed var(--c-border); background:transparent;
+  font-family:'Nunito',sans-serif; font-size:13px; font-weight:800;
+  color:var(--c-accent); cursor:pointer; transition:all 0.15s;
+}
+.add-cage-btn:active { transform:scale(0.98); background:var(--c-lav); }
+.add-cage-btn:disabled { opacity:0.4; cursor:default; }
+
+.cage-picker-grid { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-start; max-height:60vh; overflow-y:auto; padding-bottom:4px; }
+.cage-picker-item {
+  width:54px; height:54px; border-radius:12px;
+  background:var(--c-white); border:2px solid transparent;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; box-shadow:0 1px 4px var(--c-shadow);
+  transition:all 0.15s; flex-shrink:0;
+}
+.cage-picker-item:active { transform:scale(0.88); }
+.cage-picker-item.selected { border-color:var(--c-accent); background:var(--c-lav); }
+.cage-picker-item img { width:40px; height:40px; }
+
 .toggle-row {
   display:flex; align-items:center; justify-content:space-between;
   background:var(--c-white); border-radius:14px; padding:12px 14px;
   box-shadow:0 1px 4px var(--c-shadow); margin-bottom:8px;
 }
 .toggle-label { font-size:14px; font-weight:700; color:var(--c-text); flex:1; }
-.toggle-sub { font-size:11px; color:var(--c-textlt); font-weight:700; margin-left:8px; }
 .toggle {
   width:44px; height:26px; border-radius:13px; background:var(--c-border);
   position:relative; cursor:pointer; transition:background 0.2s; border:none; flex-shrink:0;
@@ -409,15 +436,8 @@ body {
   box-shadow:0 1px 4px rgba(0,0,0,0.2);
 }
 .toggle.on::after { transform:translateX(18px); }
+.unpin-btn { font-size:11px; font-weight:800; color:var(--c-accent); background:none; border:none; cursor:pointer; padding:0 8px; white-space:nowrap; }
 
-/* unpin button in settings */
-.unpin-btn {
-  font-size:11px; font-weight:800; color:var(--c-accent);
-  background:none; border:none; cursor:pointer; padding:0 0 0 8px;
-  white-space:nowrap;
-}
-
-/* palette */
 .palette-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .palette-btn {
   border-radius:14px; padding:10px 12px; border:2px solid transparent;
@@ -429,7 +449,6 @@ body {
 .palette-swatches { display:flex; gap:3px; }
 .swatch { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
 
-/* start date */
 .start-date-row {
   background:var(--c-white); border-radius:14px; padding:12px 14px;
   box-shadow:0 1px 4px var(--c-shadow);
@@ -438,7 +457,6 @@ body {
 .start-date-label { font-size:14px; font-weight:700; color:var(--c-text); }
 .start-date-input { border:none; outline:none; font-family:'Nunito',sans-serif; font-size:13px; font-weight:700; color:var(--c-accent); background:transparent; cursor:pointer; }
 
-/* pet name */
 .petname-group { display:flex; flex-wrap:wrap; gap:8px; }
 .petname-pill {
   padding:8px 16px; border-radius:20px; border:2px solid var(--c-border);
@@ -456,9 +474,6 @@ body {
 .petname-custom-input.show { display:block; }
 .petname-custom-input:focus { border-color:var(--c-accent); }
 
-/* long-press hint */
-.stat-hint { font-size:10px; font-weight:700; color:var(--c-textlt); text-align:center; padding:2px 20px 8px; letter-spacing:0.3px; }
-
 .export-btn {
   display:flex; align-items:center; gap:6px;
   margin:14px 0 0; padding:10px 16px; border-radius:16px;
@@ -468,10 +483,10 @@ body {
   transition:all 0.15s; width:100%; justify-content:center;
 }
 .export-btn:active { transform:scale(0.97); }
+.export-btn img { width:16px; height:16px; }
 
 .deco-paw { position:fixed; font-size:80px; opacity:0.04; pointer-events:none; z-index:0; user-select:none; }
 
-/* mini modal */
 .mini-modal {
   background:var(--c-modal); border-radius:var(--radius-xl) var(--radius-xl) 0 0;
   padding:20px 20px 30px; width:100%; max-width:430px;
@@ -497,7 +512,7 @@ body {
 
   <!-- HEADER -->
   <div class="header">
-    <div class="header-title">lock log <span>🔒</span></div>
+    <div class="header-title">lock log <img class="header-logo" src="icons/logo-main.png" alt="lock log logo"></div>
     <div class="header-pins" id="header-pins"></div>
   </div>
 
@@ -527,7 +542,7 @@ body {
       </div>
       <div class="calendar-grid" id="calendar-grid"></div>
     </div>
-    <button class="export-btn" onclick="exportImage()">📸 screenshot to share</button>
+    <button class="export-btn" onclick="exportImage()"><img src="icons/icon-share.png" alt="">screenshot to share</button>
   </div>
 
   <!-- SETTINGS VIEW -->
@@ -535,7 +550,7 @@ body {
     <div style="height:16px"></div>
 
     <div class="settings-section">
-      <div class="settings-title">📅 start date</div>
+      <div class="settings-title"><img src="icons/icon-calendar.png" alt="">start date</div>
       <div class="start-date-row">
         <div class="start-date-label">tracking since</div>
         <input type="date" class="start-date-input" id="start-date-input" onchange="setStartDate(this.value)">
@@ -559,8 +574,9 @@ body {
     </div>
 
     <div class="settings-section">
-      <div class="settings-title">🔒 cage names</div>
+      <div class="settings-title"><img src="icons/icon-lock.png" alt="">cages</div>
       <div id="cage-list"></div>
+      <button class="add-cage-btn" id="add-cage-btn" onclick="addCage()">＋ add a cage</button>
     </div>
 
     <div class="settings-section">
@@ -582,10 +598,10 @@ body {
 <!-- BOTTOM NAV -->
 <div class="bottom-nav">
   <button class="nav-item active" id="nav-calendar" onclick="switchView('calendar')">
-    <div class="nav-icon">📅</div><div class="nav-text">CALENDAR</div>
+    <div class="nav-icon"><img src="icons/icon-calendar.png" alt=""></div><div class="nav-text">CALENDAR</div>
   </button>
   <button class="nav-item" id="nav-settings" onclick="switchView('settings')">
-    <div class="nav-icon">⚙️</div><div class="nav-text">SETTINGS</div>
+    <div class="nav-icon"><img src="icons/icon-settings.png" alt=""></div><div class="nav-text">SETTINGS</div>
   </button>
 </div>
 
@@ -600,10 +616,10 @@ body {
     <div class="form-section">
       <div class="mood-prompt" id="mood-prompt">how ya feeling today, pup?</div>
       <div class="mood-group">
-        <button class="mood-pill" data-val="straining"   onclick="selectMood(this)">straining a little</button>
-        <button class="mood-pill" data-val="desperate"   onclick="selectMood(this)">so so desperate</button>
-        <button class="mood-pill" data-val="leaking"     onclick="selectMood(this)">can't stop leaking</button>
-        <button class="mood-pill" data-val="pathetic"     onclick="selectMood(this)">fhdhfhddhdh >~< </button>
+        <button class="mood-pill" data-val="good"        onclick="selectMood(this)">pretty good ✨</button>
+        <button class="mood-pill" data-val="straining"   onclick="selectMood(this)">straining a little 😳</button>
+        <button class="mood-pill" data-val="leaking"     onclick="selectMood(this)">can't stop leaking 💧</button>
+        <button class="mood-pill" data-val="desperate"   onclick="selectMood(this)">pathetically desperate 🥺</button>
         <button class="mood-pill" data-val="mindbroken"  onclick="selectMood(this)">mindbroken 🌀</button>
       </div>
     </div>
@@ -612,13 +628,7 @@ body {
 
     <div class="form-section">
       <span class="form-label">ORGASM STATUS</span>
-      <div class="pill-group" id="orgasm-pills">
-        <button class="pill" data-val="none"      data-col="none"   onclick="selectOrgasm(this)">🌿 none</button>
-        <button class="pill" data-val="orgasm"    data-col="orgasm" onclick="selectOrgasm(this)">🌸 orgasm</button>
-        <button class="pill" data-val="ruined"    data-col="ruined" onclick="selectOrgasm(this)">🍑 ruined</button>
-        <button class="pill" data-val="forbidden" data-col="forbid" onclick="selectOrgasm(this)">🚫 forbidden</button>
-        <button class="pill" data-val="edged"     data-col="lav"    onclick="selectOrgasm(this)">🔥 edged only</button>
-      </div>
+      <div class="pill-group" id="orgasm-pills"></div>
     </div>
 
     <div class="form-section">
@@ -653,51 +663,120 @@ body {
   </div>
 </div>
 
+<!-- CAGE ICON PICKER MODAL -->
+<div class="modal-overlay" id="cage-picker-overlay" onclick="closeCagePickerOnOverlay(event)">
+  <div class="mini-modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">choose a cage icon</div>
+    <div class="cage-picker-grid" id="cage-picker-grid"></div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════
-const STORAGE_KEY = 'locklog_v4';
+const STORAGE_KEY = 'locklog_v6';
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const TODAY_STR = fmtDate(TODAY);
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const CAGE_ICONS = ['○','🅰','🅱','🅲','🅳'];
+
+// All 32 cage icon options
+const CAGE_OPTIONS = [
+  {id:'cherry-micro-ts-purple', label:'Cherry Keeper Micro touch-stop (purple)'},
+  {id:'cherry-micro-ts-pink',   label:'Cherry Keeper Micro touch-stop (pink)'},
+  {id:'cherry-micro-ts-white',  label:'Cherry Keeper Micro touch-stop (white)'},
+  {id:'cherry-micro-ts-black',  label:'Cherry Keeper Micro touch-stop (black)'},
+  {id:'cherry-micro-purple',    label:'Cherry Keeper Micro (purple)'},
+  {id:'cherry-micro-pink',      label:'Cherry Keeper Micro (pink)'},
+  {id:'cherry-micro-white',     label:'Cherry Keeper Micro (white)'},
+  {id:'cherry-micro-black',     label:'Cherry Keeper Micro (black)'},
+  {id:'cherry-nano-ts-orange',  label:'Cherry Keeper Nano touch-stop (orange)'},
+  {id:'cherry-nano-ts-blue',    label:'Cherry Keeper Nano touch-stop (blue)'},
+  {id:'cherry-nano-ts-black',   label:'Cherry Keeper Nano touch-stop (black)'},
+  {id:'cherry-nano-ts-pink',    label:'Cherry Keeper Nano touch-stop (pink)'},
+  {id:'cherry-nano-orange',     label:'Cherry Keeper Nano (orange)'},
+  {id:'cherry-nano-blue',       label:'Cherry Keeper Nano (blue)'},
+  {id:'cherry-nano-black',      label:'Cherry Keeper Nano (black)'},
+  {id:'cherry-nano-pink',       label:'Cherry Keeper Nano (pink)'},
+  {id:'small-cobra-white',      label:'Small Cobra (white)'},
+  {id:'small-cobra-lightblue',  label:'Small Cobra (light blue)'},
+  {id:'small-cobra-black',      label:'Small Cobra (black)'},
+  {id:'small-cobra-pink',       label:'Small Cobra (pink)'},
+  {id:'nub-cobra-white',        label:'Nub Cobra (white)'},
+  {id:'nub-cobra-lightblue',    label:'Nub Cobra (light blue)'},
+  {id:'nub-cobra-black',        label:'Nub Cobra (black)'},
+  {id:'nub-cobra-pink',         label:'Nub Cobra (pink)'},
+  {id:'flat-paw-cage',          label:'Flat paw cage'},
+  {id:'flat-cage',              label:'Flat cage'},
+  {id:'basic-steel-cage',       label:'Basic Steel cage'},
+  {id:'nub-steel-cage',         label:'Nub Steel cage'},
+  {id:'pup-drone-cage',         label:'Pup Drone cage'},
+  {id:'shark-cage',             label:'Shark cage'},
+  {id:'toy-cage',               label:'Toy cage'},
+  {id:'inverted-heart-cage',    label:'Inverted Heart cage'},
+];
+function cageIconSrc(iconId){ return `icons/cage-${iconId}.png`; }
+
+const MAX_CAGES = 8;
+const DEFAULT_CAGES = [
+  {id:'c0', name:'Cage A', icon:'cherry-micro-ts-purple'},
+  {id:'c1', name:'Cage B', icon:'small-cobra-white'},
+  {id:'c2', name:'Cage C', icon:'basic-steel-cage'},
+];
 
 // Stat definitions — all cumulative
 const STAT_DEFS = [
-  { id:'tracked',       icon:'🗓️', label:'days tracked',          fmt: v => v+'d' },
-  { id:'locked',        icon:'🔒', label:'days locked',            fmt: v => v+'d' },
-  { id:'unlocked',      icon:'🔓', label:'days unlocked',          fmt: v => v+'d' },
-  { id:'orgasms',       icon:'🌸', label:'orgasms',                fmt: v => v },
-  { id:'ruined',        icon:'🍑', label:'ruined',                 fmt: v => v },
-  { id:'edges',         icon:'🔥', label:'edges',                  fmt: v => v },
-  { id:'forbidden',     icon:'🚫', label:'forbidden',              fmt: v => v },
-  { id:'lockStreak',    icon:'⏱️', label:'current lock streak',    fmt: v => v+'d' },
-  { id:'longestLock',   icon:'🏆', label:'longest lock streak',    fmt: v => v+'d' },
-  { id:'sinceOrgasm',   icon:'💧', label:'days since last orgasm', fmt: v => v+'d' },
-  { id:'longestDenial', icon:'🎗️', label:'longest denial streak',  fmt: v => v+'d' },
+  { id:'tracked',       iconImg:'icons/icon-calendar.png',        label:'days tracked',          fmt: v => v+'d' },
+  { id:'locked',        iconImg:'icons/icon-lock.png',            label:'days locked',           fmt: v => v+'d' },
+  { id:'unlocked',      iconImg:'icons/icon-unlock.png',          label:'days unlocked',         fmt: v => v+'d' },
+  { id:'orgasms',       iconImg:'icons/icon-droplet-orgasm.png',  label:'orgasms',                fmt: v => v },
+  { id:'ruined',        iconImg:'icons/icon-ruined.png',          label:'ruined',                 fmt: v => v },
+  { id:'edges',         iconImg:'icons/icon-flame.png',           label:'edges',                  fmt: v => v },
+  { id:'forbidden',     iconImg:'icons/icon-forbidden.png',       label:'forbidden',               fmt: v => v },
+  { id:'lockStreak',    iconImg:'icons/icon-stopwatch.png',       label:'current lock streak',    fmt: v => v+'d' },
+  { id:'longestLock',   iconImg:'icons/icon-trophy.png',          label:'longest lock streak',    fmt: v => v+'d' },
+  { id:'sinceOrgasm',   iconImg:'icons/icon-droplet-orgasm.png',  label:'days since last orgasm', fmt: v => v+'d' },
+  { id:'longestDenial', iconImg:'icons/icon-ribbon.png',          label:'longest denial streak',  fmt: v => v+'d' },
+];
+function statIconHtml(s){ return `<img src="${s.iconImg}" alt="">`; }
+
+// Orgasm status options
+const ORGASM_OPTIONS = [
+  {val:'none',      icon:'icons/icon-lock.png',           label:'none',      col:'none'},
+  {val:'orgasm',    icon:'icons/icon-droplet-orgasm.png', label:'orgasm',    col:'orgasm'},
+  {val:'ruined',    icon:'icons/icon-ruined.png',         label:'ruined',    col:'ruined'},
+  {val:'forbidden', icon:'icons/icon-forbidden.png',      label:'forbidden', col:'forbid'},
 ];
 
+// Stickers — method + extras. "enabled:false" ones are hidden but kept for future icons.
 const DEFAULT_STICKERS = [
-  {id:'paw-o',    emoji:'🐾',  label:'paw orgasm'},
-  {id:'vibe-o',   emoji:'📳',  label:'vibe orgasm'},
-  {id:'anal-o',   emoji:'〰️', label:'anal orgasm'},
-  {id:'hf-o',     emoji:'🤲',  label:'handsfree'},
-  {id:'other-o',  emoji:'✨',  label:'other orgasm'},
-  {id:'paw-e',    emoji:'🔥',  label:'paw edge'},
-  {id:'vibe-e',   emoji:'⚡',  label:'vibe edge'},
-  {id:'other-e',  emoji:'💫',  label:'other edge'},
-  {id:'cage-chg', emoji:'🔄',  label:'cage change'},
-  {id:'downsize', emoji:'⬇️', label:'downsize'},
-  {id:'misbehav', emoji:'😈',  label:'misbehavior'},
-  {id:'punish',   emoji:'⚡',  label:'punishment'},
-  {id:'reward',   emoji:'🎁',  label:'reward'},
-  {id:'bad-slp',  emoji:'😴',  label:'bad sleep'},
-  {id:'discomfort',emoji:'🩹', label:'discomfort'},
-  {id:'key',      emoji:'🔑',  label:'key access'},
-  {id:'inspect',  emoji:'🔍',  label:'inspection'},
+  {id:'paw',       icon:'icons/icon-paw.png',          label:'paw',         enabled:true},
+  {id:'anal',      icon:'icons/icon-plug.png',         label:'anal',        enabled:true},
+  {id:'handsfree', icon:'icons/icon-handsfree.png',    label:'handsfree',   enabled:true},
+  {id:'vibrator',  icon:'icons/icon-vibrator.png',     label:'vibrator',    enabled:true},
+  {id:'other',     icon:'icons/icon-other-orgasm.png', label:'other',       enabled:true},
+  {id:'edge',      icon:'icons/icon-flame.png',        label:'edge',        enabled:true},
+  {id:'cage-chg',  icon:'icons/icon-cage-swap.png',    label:'cage change', enabled:true},
+  {id:'downsize',  icon:'icons/icon-downsize.png',     label:'downsize',    enabled:true},
+  {id:'misbehav',  icon:'icons/icon-spanking.png',     label:'misbehavior', enabled:true},
+  {id:'punish',    icon:'icons/icon-paddle.png',       label:'punishment',  enabled:true},
+  {id:'reward',    icon:'icons/icon-gift.png',         label:'reward',      enabled:true},
+  {id:'bad-slp',   icon:null, emoji:'😴', label:'bad sleep',   enabled:false},
+  {id:'discomfort',icon:null, emoji:'🩹', label:'discomfort',  enabled:false},
+  {id:'key',       icon:null, emoji:'🔑', label:'key access',  enabled:false},
+  {id:'inspect',   icon:null, emoji:'🔍', label:'inspection',  enabled:false},
 ];
+
+// migrate old sticker ids -> new ids (+ whether they imply the 'edge' sticker too)
+const STICKER_MIGRATION = {
+  'paw-o':{id:'paw'}, 'paw-e':{id:'paw', addEdge:true},
+  'vibe-o':{id:'vibrator'}, 'vibe-e':{id:'vibrator', addEdge:true},
+  'anal-o':{id:'anal'},
+  'other-o':{id:'other'}, 'other-e':{id:'other', addEdge:true},
+  'hf-o':{id:'handsfree'},
+};
 
 const THEMES = [
   {id:'soft-puppy', name:'soft puppy',  swatches:['#b8e8d4','#f7c5d5','#ffd4b8','#e8d4f7'], bg:'#fdf8f0', light:true},
@@ -708,38 +787,36 @@ const THEMES = [
 ];
 
 const STREAK_MSGS = {
-  6:  ['good puppy! 🐾','such a well-behaved pup 🔒','owner would be pleased~'],
-  11: ['such a patient pup!','keeping it locked like a good girl'],
-  21: ['owner must be very proud.','such a dedicated puppy.','so obedient~'],
-  31: ['a whole month?! good girl 🏆','incredibly devoted pup 💜🔒','your owner is very lucky'],
-  55: ['might as well get you fixed at this point~ ✂️','practically neutered at this stage, pup.','maybe it\'s time to just flush that key 🔑🚽','honestly not sure pup ever needs to come out again 😇🔒'],
+  6:  ['good puppy! 🐾','such a well-behaved pup 🔒','owner would be pleased~ 🥺'],
+  11: ['such a patient pup! 🔒✨','keeping it locked like a good girl 💜','discipline looks good on you 🐾'],
+  21: ['owner must be very proud 🥺🐶','that\'s real dedication, pup 🔒💫','so obedient~ 🥺✨'],
+  31: ['a whole month?! good girl 🏆🐾','incredibly devoted pup 💜🔒','your owner is very lucky 🥺🐶'],
+  55: ['might as well get you fixed at this point~ ✂️','practically neutered at this stage, pup 🐾😏','maybe it\'s time to just flush that key 🔑🚽','honestly not sure pup ever needs to come out again 😇🔒'],
 };
 const ORGASM_MSGS = {
-  orgasm:    ['lucky girl!','you earned that one','what a good pup, getting a treat~ ','awwww what a lucky girl'],
-  ruined:    ['so close, pup~ ','almost... but not quite','that\'s what you get~','be grateful, mutt.'],
-  forbidden: ['uh oh...','Tell your owner now, puppy.','That\'s not going unpunished.','Might be time for a smaller cage~'],
+  orgasm:    ['lucky girl! 🌸','you earned that one 🌸✨','what a good pup, getting a treat~ 🐾','rewarded and grateful, as it should be 💜'],
+  ruined:    ['so close, pup~ 🍑','almost... but not quite 😈','that\'s what you get~ 🍑','owner giveth and owner taketh away 😏'],
+  forbidden: ['uh oh... 😬','that\'s going in the report 📋😬','someone\'s in trouble~ 😈','oops. owner will hear about this 👀'],
 };
 const MOOD_MSGS = {
-  leaking:   ['making a mess, pup?','dripping already? good pup.','Better get used to this.'],
-  desperate: ['You\'re exactly where you belong','it doesn\'t get any easier, puppy.','You don\'t need to worry about that little knot anymore.'],
-  pathetic:['God, you\'re pathetic.','Aww, thinking getting hard?','Use you\'re words, pup.'],
-  mindbroken:['Perfect~ 🌀','Stay just like that.','Now you can focus on what really matters.'],
+  leaking:   ['making a mess, pup~ 💧😏','dripping already? good pup 💧'],
+  desperate: ['that\'s exactly where you belong 🥺🔒','desperation looks so good on you 🥺💜'],
+  mindbroken:['there she goes~ 🌀🐾','completely gone. perfect. 🌀✨','owner broke you just right 🌀💜'],
 };
 const STICKER_MSGS = {
-  'paw-o':    ['good pup, serving owner well 🐾','lucky pup'],
-  'paw-e':    ['getting worked up~','good puppy'],
-  'vibe-o':   ['bzzzzzzz','don\'t get used to that.'],
-  'vibe-e':   ['so close...','Well, you were lucky to get anything at all.'],
-  'cage-chg': ['fresh cage!','how does the new one feel, puppy?'],
-  'downsize': ['tighter and tighter~','the old one was way to big anyway...','it can always get smaller.'],
-  'misbehav': ['noted.','have you told your owner?','pups who misbehave don\'t get treats'],
-  'punish':   ['lesson learned.','correction builds good pups 💕','Gonna be sore for a few days?','Thank your owner.'],
-  'reward':   ['Good puppies get treats.','Lucky girl.'],
-  'discomfort':['take care of yourself, pup.','Tell your owner, pup.'],
-  'bad-slp':  ['Good pets need good sleep.','Might be a long day.'],
-  'key':      ['trusted with the key~','Be responsible with that.'],
-  'inspect':  ['inspection day~','Everything checked and accounted.','tail up, puppy~'],
-  'hf-o':     ['no hands needed!','impressive, pup~','No need to touch that cage ever again ☺️'],
+  'paw':      ['good pup, serving owner well 🐾','that\'s what paws are for~ 💜'],
+  'vibrator': ['buzzy day~ 📳✨','the wand has spoken 📳💫'],
+  'cage-chg': ['fresh cage, fresh start 🔄🔒','how does the new one feel, pup? 🐾'],
+  'downsize': ['tighter and tighter~ 😏🔒','owner means business 👀⬇️'],
+  'misbehav': ['noted. 📋','pups who misbehave don\'t get treats 😈'],
+  'punish':   ['lessons learned the hard way 🐾','corrections build good pups 💜'],
+  'reward':   ['treats for good girls 🎁🌸','you must have been very good~ 💜✨'],
+  'discomfort':['take care of yourself, pup 🩹💜','comfort matters, always check in 🐾'],
+  'bad-slp':  ['rest up, pup 😴💜','tired pups need extra care 🐾'],
+  'key':      ['trusted with the key~ 🔑✨','responsibility noted 🔑🐾'],
+  'inspect':  ['inspection day~ keeping everything in order 🔍🔒','checked and accounted for 🔍🐾'],
+  'handsfree':['no hands needed when you\'re that good 🤲✨','impressive, pup~ 💫'],
+  'edge':     ['so close... 🔥','right on the edge~ 🔥😏'],
 };
 const MOOD_PROMPTS = [
   n=>`how ya feeling today, ${n}?`,
@@ -754,7 +831,7 @@ const MOOD_PROMPTS = [
 // ══════════════════════════════════════
 let state = {
   days: {},
-  cages: ['Cage A','Cage B','Cage C'],
+  cages: JSON.parse(JSON.stringify(DEFAULT_CAGES)),
   showStickers: true,
   theme: 'soft-puppy',
   startDate: null,
@@ -762,31 +839,33 @@ let state = {
   petNameCustom: '',
   customStickers: [],
   statEnabled: Object.fromEntries(STAT_DEFS.map(s=>[s.id,true])),
-  pinnedStats: [], // max 2 stat ids
+  pinnedStats: [],
 };
 
 let editingDate=null, selectedOrgasm='none', selectedCage='none';
 let selectedStickers=new Set(), selectedMood=null;
 let currentYear=TODAY.getFullYear(), currentMonth=TODAY.getMonth();
 let lastFeedbackStreak=-1;
+let cagePickerTargetIdx=null;
 
 // ══════════════════════════════════════
 //  HELPERS
 // ══════════════════════════════════════
-function fmtDate(d){
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-function parseDate(s){
-  const [y,m,d]=s.split('-').map(Number);
-  const dt=new Date(y,m-1,d); dt.setHours(0,0,0,0); return dt;
-}
+function fmtDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function parseDate(s){ const [y,m,d]=s.split('-').map(Number); const dt=new Date(y,m-1,d); dt.setHours(0,0,0,0); return dt; }
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-function allStickers(){ return [...DEFAULT_STICKERS,...state.customStickers]; }
+function allStickers(){ return [...DEFAULT_STICKERS.filter(s=>s.enabled),...state.customStickers]; }
+function stickerById(id){ return [...DEFAULT_STICKERS,...state.customStickers].find(s=>s.id===id); }
 function getPetName(){ return state.petName==='custom'?(state.petNameCustom||'pup'):state.petName; }
 function getPrevDate(dateStr){ const d=parseDate(dateStr); d.setDate(d.getDate()-1); return fmtDate(d); }
+function cageById(id){ return state.cages.find(c=>c.id===id); }
+function stickerIconHtml(s, cls){
+  if(s.icon) return `<img src="${s.icon}" class="${cls||''}" alt="">`;
+  return s.emoji||'⭐';
+}
 
 // ══════════════════════════════════════
-//  PERSIST
+//  PERSIST + MIGRATION
 // ══════════════════════════════════════
 function load(){
   try{
@@ -794,10 +873,53 @@ function load(){
     if(s){
       const p=JSON.parse(s);
       state={...state,...p};
-      // ensure all stat keys exist
       STAT_DEFS.forEach(sd=>{ if(state.statEnabled[sd.id]===undefined) state.statEnabled[sd.id]=true; });
+      if(!state.cages||!state.cages.length) state.cages=JSON.parse(JSON.stringify(DEFAULT_CAGES));
+      return;
     }
+    // try migrating from older version keys
+    migrateOldData();
   }catch(e){}
+}
+function migrateOldData(){
+  for(const oldKey of ['locklog_v5','locklog_v4','locklog_v3','locklog_v2','locklog_v1']){
+    try{
+      const raw=localStorage.getItem(oldKey);
+      if(!raw) continue;
+      const old=JSON.parse(raw);
+      if(old.days){
+        Object.entries(old.days).forEach(([dateStr,day])=>{
+          const newStickers=new Set();
+          (day.stickers||[]).forEach(sid=>{
+            const mig=STICKER_MIGRATION[sid];
+            if(mig){ newStickers.add(mig.id); if(mig.addEdge) newStickers.add('edge'); }
+            else newStickers.add(sid);
+          });
+          let orgasm=day.orgasm||'none';
+          if(orgasm==='edged'){ orgasm='none'; newStickers.add('edge'); }
+          state.days[dateStr]={...day, orgasm, stickers:[...newStickers]};
+        });
+      }
+      if(old.theme) state.theme=old.theme;
+      if(old.startDate) state.startDate=old.startDate;
+      if(old.petName) state.petName=old.petName;
+      if(old.petNameCustom) state.petNameCustom=old.petNameCustom;
+      if(old.showStickers!==undefined) state.showStickers=old.showStickers;
+      // old simple cage names (A/B/C strings) -> map onto default cage objects by name
+      if(old.cages && Array.isArray(old.cages) && typeof old.cages[0]==='string'){
+        state.cages=old.cages.map((name,i)=>({
+          id:'c'+i, name, icon:DEFAULT_CAGES[i%DEFAULT_CAGES.length].icon
+        }));
+        // remap day cage refs from 'A'/'B'/'C'/'none' to new ids
+        Object.values(state.days).forEach(day=>{
+          const idx='ABCD'.indexOf(day.cage);
+          day.cage = idx>=0 && state.cages[idx] ? state.cages[idx].id : 'none';
+        });
+      }
+      save();
+      break;
+    }catch(e){}
+  }
 }
 function save(){ try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }catch(e){} }
 
@@ -808,9 +930,23 @@ function init(){
   load();
   document.body.setAttribute('data-theme',state.theme);
   document.getElementById('start-date-input').value=state.startDate||'';
+  renderOrgasmPills();
   renderCalendar();
   renderStatTiles();
   renderHeaderPins();
+}
+
+function renderOrgasmPills(){
+  const wrap=document.getElementById('orgasm-pills');
+  wrap.innerHTML='';
+  ORGASM_OPTIONS.forEach(o=>{
+    const btn=document.createElement('button');
+    btn.className='pill';
+    btn.dataset.val=o.val; btn.dataset.col=o.col;
+    btn.innerHTML=`<img src="${o.icon}" alt="">${o.label}`;
+    btn.onclick=()=>selectOrgasm(btn);
+    wrap.appendChild(btn);
+  });
 }
 
 // ══════════════════════════════════════
@@ -822,21 +958,18 @@ function computeStats(){
     .filter(([k])=>!startDt||parseDate(k)>=startDt)
     .sort(([a],[b])=>a<b?-1:1);
 
-  // days tracked
   let tracked=0;
   if(startDt){ tracked=Math.max(0,Math.floor((TODAY-startDt)/86400000)+1); }
 
-  // basic counts
   let locked=0,unlocked=0,orgasms=0,ruined=0,edges=0,forbidden=0;
   entries.forEach(([,v])=>{
-    if(v.cage&&v.cage!=='none') locked++; else if(v.cage==='none') unlocked++;
+    if(v.cage&&v.cage!=='none') locked++; else unlocked++;
     if(v.orgasm==='orgasm')    orgasms++;
     if(v.orgasm==='ruined')    ruined++;
-    if(v.orgasm==='edged')     edges++;
     if(v.orgasm==='forbidden') forbidden++;
+    if(v.stickers&&v.stickers.includes('edge')) edges++;
   });
 
-  // current lock streak
   let lockStreak=0;
   for(let i=0;i<730;i++){
     const d=new Date(TODAY); d.setDate(d.getDate()-i);
@@ -847,14 +980,12 @@ function computeStats(){
     else if(i>0) break;
   }
 
-  // longest lock streak
   let longestLock=0,curLock=0;
   entries.forEach(([,v])=>{
     if(v.cage&&v.cage!=='none'){curLock++; longestLock=Math.max(longestLock,curLock);}
     else curLock=0;
   });
 
-  // days since last orgasm (ruined counts)
   let sinceOrgasm=tracked;
   for(let i=0;i<730;i++){
     const d=new Date(TODAY); d.setDate(d.getDate()-i);
@@ -864,7 +995,6 @@ function computeStats(){
     if(day&&(day.orgasm==='orgasm'||day.orgasm==='ruined')){sinceOrgasm=i; break;}
   }
 
-  // longest denial streak
   let longestDenial=0,curDenial=0;
   entries.forEach(([,v])=>{
     if(v.orgasm==='orgasm'||v.orgasm==='ruined'){longestDenial=Math.max(longestDenial,curDenial);curDenial=0;}
@@ -894,12 +1024,10 @@ function renderStatTiles(){
     tile.dataset.id=s.id;
     tile.innerHTML=`
       ${isPinned?'<div class="stat-tile-pin">📌</div>':''}
-      <div class="stat-tile-icon">${s.icon}</div>
+      <div class="stat-tile-icon">${statIconHtml(s)}</div>
       <div class="stat-tile-val">${val}</div>
       <div class="stat-tile-lbl">${s.label}</div>
     `;
-
-    // long press to pin/unpin
     tile.addEventListener('pointerdown', ()=>{
       tile.classList.add('pressing');
       longPressTimer=setTimeout(()=>{
@@ -912,7 +1040,6 @@ function renderStatTiles(){
     tile.addEventListener('pointerup', cancelPress);
     tile.addEventListener('pointerleave', cancelPress);
     tile.addEventListener('pointermove', cancelPress);
-
     wrap.appendChild(tile);
   });
 
@@ -924,20 +1051,12 @@ function togglePin(id){
   if(state.pinnedStats.includes(id)){
     state.pinnedStats=state.pinnedStats.filter(p=>p!==id);
   } else {
-    if(state.pinnedStats.length>=2){
-      // remove oldest pin, add new
-      state.pinnedStats.shift();
-    }
+    if(state.pinnedStats.length>=2) state.pinnedStats.shift();
     state.pinnedStats.push(id);
   }
-  save();
-  renderStatTiles();
-  renderStatSettingsList();
+  save(); renderStatTiles(); renderStatSettingsList();
 }
 
-// ══════════════════════════════════════
-//  HEADER PINS
-// ══════════════════════════════════════
 function renderHeaderPins(stats){
   const pinsEl=document.getElementById('header-pins');
   pinsEl.innerHTML='';
@@ -948,15 +1067,12 @@ function renderHeaderPins(stats){
     const val=stats[id];
     const pill=document.createElement('div');
     pill.className='pin-pill';
-    pill.innerHTML=`<span class="pin-pill-icon">${def.icon}</span><span class="pin-pill-val">${def.fmt(val)}</span>`;
+    pill.innerHTML=`<span class="pin-pill-icon">${statIconHtml(def)}</span><span class="pin-pill-val">${def.fmt(val)}</span>`;
     pill.title=def.label;
     pinsEl.appendChild(pill);
   });
 }
 
-// ══════════════════════════════════════
-//  SETTINGS — STAT LIST
-// ══════════════════════════════════════
 function renderStatSettingsList(){
   const list=document.getElementById('stat-settings-list');
   if(!list) return;
@@ -966,7 +1082,7 @@ function renderStatSettingsList(){
     const row=document.createElement('div');
     row.className='toggle-row';
     row.innerHTML=`
-      <div class="toggle-label">${s.icon} ${s.label}${isPinned?' <span style="font-size:11px">📌</span>':''}</div>
+      <div class="toggle-label" style="display:flex;align-items:center;gap:6px">${statIconHtml(s)} ${s.label}${isPinned?' 📌':''}</div>
       ${isPinned?`<button class="unpin-btn" onclick="togglePin('${s.id}')">unpin</button>`:''}
       <button class="toggle${state.statEnabled[s.id]?' on':''}" id="stog-${s.id}" onclick="toggleStatEnabled('${s.id}')"></button>
     `;
@@ -976,7 +1092,6 @@ function renderStatSettingsList(){
 
 function toggleStatEnabled(id){
   state.statEnabled[id]=!state.statEnabled[id];
-  // auto-unpin if hidden
   if(!state.statEnabled[id]&&state.pinnedStats.includes(id)){
     state.pinnedStats=state.pinnedStats.filter(p=>p!==id);
   }
@@ -994,12 +1109,8 @@ function checkFeedback(streak){
     if(streak>=t){ showToast(pick(STREAK_MSGS[t])); return; }
   }
 }
-
 let toastQueue=[], toastBusy=false;
-function showToast(msg){
-  toastQueue.push(msg);
-  if(!toastBusy) processToast();
-}
+function showToast(msg){ toastQueue.push(msg); if(!toastBusy) processToast(); }
 function processToast(){
   if(!toastQueue.length){toastBusy=false;return;}
   toastBusy=true;
@@ -1053,35 +1164,35 @@ function renderCalendar(){
     if(isFuture) inner.classList.add('tile-bg-future');
     else if(isBeforeStart) inner.classList.add('tile-bg-before');
     else if(dayData){
-      const m={none:'tile-bg-none',orgasm:'tile-bg-orgasm',ruined:'tile-bg-ruined',forbidden:'tile-bg-forbidden',edged:'tile-bg-edged'};
+      const m={none:'tile-bg-none',orgasm:'tile-bg-orgasm',ruined:'tile-bg-ruined',forbidden:'tile-bg-forbidden'};
       inner.classList.add(m[dayData.orgasm]||'tile-bg-none');
     } else inner.classList.add('tile-bg-none');
     tile.appendChild(inner);
 
-    // date top-left
     const dateEl=document.createElement('div');
     dateEl.className='tile-date'; dateEl.textContent=d;
     tile.appendChild(dateEl);
 
-    // cage top-right
-    if(!isBeforeStart&&dayData&&dayData.cage){
-      const cageEl=document.createElement('div');
-      cageEl.className='tile-cage';
-      cageEl.textContent=dayData.cage==='none'?'○':(()=>{const i='ABCD'.indexOf(dayData.cage);return i>=0?CAGE_ICONS[i+1]:'○';})();
-      tile.appendChild(cageEl);
+    if(!isBeforeStart&&dayData&&dayData.cage&&dayData.cage!=='none'){
+      const cage=cageById(dayData.cage);
+      if(cage){
+        const cageEl=document.createElement('div');
+        cageEl.className='tile-cage';
+        cageEl.innerHTML=`<img src="${cageIconSrc(cage.icon)}" alt="">`;
+        tile.appendChild(cageEl);
+      }
     }
 
-    // stickers bottom 75%, max 2
     if(state.showStickers&&!isBeforeStart&&dayData&&dayData.stickers&&dayData.stickers.length){
       const wrap=document.createElement('div');
       wrap.className='tile-stickers';
       const pos=[{top:'8%',left:'6%',rot:-16},{top:'38%',left:'46%',rot:13}];
       dayData.stickers.slice(0,2).forEach((sid,i)=>{
-        const s=allStickers().find(x=>x.id===sid);
+        const s=stickerById(sid);
         if(!s) return;
         const el=document.createElement('span');
         el.className='sticker';
-        el.textContent=s.emoji;
+        el.innerHTML=stickerIconHtml(s);
         el.style.cssText=`top:${pos[i].top};left:${pos[i].left};transform:rotate(${pos[i].rot}deg);`;
         wrap.appendChild(el);
       });
@@ -1105,13 +1216,11 @@ function openModal(dateStr){
   selectedStickers=new Set(dayData.stickers||[]);
   document.getElementById('day-notes').value=dayData.notes||'';
 
-  // cage: carry over from prev day if new
   selectedCage=dayData.cage!==undefined?dayData.cage:(()=>{
     const prev=state.days[getPrevDate(dateStr)];
-    return prev?prev.cage||'none':'none';
+    return prev?(prev.cage||'none'):'none';
   })();
 
-  // mood prompt (deterministic per date)
   const idx=parseInt(dateStr.replace(/-/g,''))%MOOD_PROMPTS.length;
   document.getElementById('mood-prompt').textContent=MOOD_PROMPTS[idx](getPetName());
 
@@ -1125,11 +1234,17 @@ function openModal(dateStr){
 
 function renderCagePills(){
   const wrap=document.getElementById('cage-pills'); wrap.innerHTML='';
-  [{val:'none',label:'🔓 no cage'},...state.cages.map((c,i)=>({val:'ABCD'[i],label:`${CAGE_ICONS[i+1]} ${c}`}))].forEach(o=>{
+  const noneBtn=document.createElement('button');
+  noneBtn.className='pill'+(selectedCage==='none'?' sel-def':'');
+  noneBtn.innerHTML=`<img src="icons/icon-unlock.png" alt="">no cage`;
+  noneBtn.onclick=()=>{selectedCage='none';document.querySelectorAll('#cage-pills .pill').forEach(p=>p.className='pill');noneBtn.classList.add('sel-def');};
+  wrap.appendChild(noneBtn);
+
+  state.cages.forEach(c=>{
     const btn=document.createElement('button');
-    btn.className='pill'+(o.val===selectedCage?' sel-def':'');
-    btn.textContent=o.label;
-    btn.onclick=()=>{selectedCage=o.val;document.querySelectorAll('#cage-pills .pill').forEach(p=>p.className='pill');btn.classList.add('sel-def');};
+    btn.className='pill'+(c.id===selectedCage?' sel-def':'');
+    btn.innerHTML=`<img src="${cageIconSrc(c.icon)}" alt="">${c.name}`;
+    btn.onclick=()=>{selectedCage=c.id;document.querySelectorAll('#cage-pills .pill').forEach(p=>p.className='pill');btn.classList.add('sel-def');};
     wrap.appendChild(btn);
   });
 }
@@ -1140,7 +1255,7 @@ function renderStickerPicker(){
     const btn=document.createElement('button');
     btn.className='sticker-pick'+(selectedStickers.has(s.id)?' selected':'');
     btn.dataset.id=s.id;
-    btn.innerHTML=`${s.emoji}<span class="sticker-label">${s.label}</span>`;
+    btn.innerHTML=`${stickerIconHtml(s)}<span class="sticker-label">${s.label}</span>`;
     btn.onclick=()=>{
       if(selectedStickers.has(s.id)) selectedStickers.delete(s.id); else selectedStickers.add(s.id);
       btn.classList.toggle('selected',selectedStickers.has(s.id));
@@ -1193,10 +1308,81 @@ function updateEmojiPreview(v){ document.getElementById('emoji-preview-display')
 function saveCustomSticker(){
   const emoji=[...document.getElementById('emoji-input').value.trim()].slice(0,2).join('')||'⭐';
   const label=document.getElementById('sticker-name-input').value.trim()||'custom';
-  state.customStickers.push({id:'custom-'+Date.now(),emoji,label});
+  state.customStickers.push({id:'custom-'+Date.now(),emoji,label,icon:null,enabled:true});
   save(); document.getElementById('add-sticker-overlay').classList.remove('open');
   renderStickerPicker(); showToast(`sticker "${label}" added! ✨`);
 }
+
+// ══════════════════════════════════════
+//  CAGES
+// ══════════════════════════════════════
+function renderCageSettings(){
+  const list=document.getElementById('cage-list'); if(!list) return;
+  list.innerHTML='';
+  state.cages.forEach((c,i)=>{
+    const row=document.createElement('div'); row.className='cage-row';
+    const preview=document.createElement('button');
+    preview.className='cage-icon-preview';
+    preview.innerHTML=`<img src="${cageIconSrc(c.icon)}" alt="">`;
+    preview.onclick=()=>openCagePicker(i);
+    row.appendChild(preview);
+
+    const input=document.createElement('input');
+    input.className='cage-name-input';
+    input.value=c.name;
+    input.onchange=()=>{ state.cages[i].name=input.value; save(); };
+    row.appendChild(input);
+
+    if(state.cages.length>1){
+      const rm=document.createElement('button');
+      rm.className='cage-remove-btn';
+      rm.innerHTML='✕';
+      rm.onclick=()=>removeCage(i);
+      row.appendChild(rm);
+    }
+    list.appendChild(row);
+  });
+  const addBtn=document.getElementById('add-cage-btn');
+  addBtn.disabled=state.cages.length>=MAX_CAGES;
+  addBtn.textContent=state.cages.length>=MAX_CAGES?`max ${MAX_CAGES} cages reached`:'＋ add a cage';
+}
+
+function addCage(){
+  if(state.cages.length>=MAX_CAGES) return;
+  const usedIcons=new Set(state.cages.map(c=>c.icon));
+  const nextIcon=CAGE_OPTIONS.find(o=>!usedIcons.has(o.id))||CAGE_OPTIONS[0];
+  const letter=String.fromCharCode(65+state.cages.length);
+  state.cages.push({id:'c'+Date.now(), name:`Cage ${letter}`, icon:nextIcon.id});
+  save(); renderCageSettings();
+}
+function removeCage(i){
+  const removed=state.cages[i];
+  state.cages.splice(i,1);
+  // unassign any days using this cage
+  Object.values(state.days).forEach(day=>{ if(day.cage===removed.id) day.cage='none'; });
+  save(); renderCageSettings(); renderCalendar(); renderStatTiles();
+}
+
+function openCagePicker(idx){
+  cagePickerTargetIdx=idx;
+  const grid=document.getElementById('cage-picker-grid');
+  grid.innerHTML='';
+  const currentIcon=state.cages[idx].icon;
+  CAGE_OPTIONS.forEach(o=>{
+    const btn=document.createElement('button');
+    btn.className='cage-picker-item'+(o.id===currentIcon?' selected':'');
+    btn.title=o.label;
+    btn.innerHTML=`<img src="${cageIconSrc(o.id)}" alt="${o.label}">`;
+    btn.onclick=()=>{
+      state.cages[cagePickerTargetIdx].icon=o.id;
+      save(); renderCageSettings(); renderCalendar();
+      document.getElementById('cage-picker-overlay').classList.remove('open');
+    };
+    grid.appendChild(btn);
+  });
+  document.getElementById('cage-picker-overlay').classList.add('open');
+}
+function closeCagePickerOnOverlay(e){ if(e.target===document.getElementById('cage-picker-overlay')) document.getElementById('cage-picker-overlay').classList.remove('open'); }
 
 // ══════════════════════════════════════
 //  SETTINGS RENDERS
@@ -1213,16 +1399,6 @@ function renderPaletteGrid(){
     btn.innerHTML=`<div class="palette-swatches">${t.swatches.map(c=>`<div class="swatch" style="background:${c}"></div>`).join('')}</div>${t.name}`;
     btn.onclick=()=>{ state.theme=t.id; document.body.setAttribute('data-theme',t.id); save(); renderPaletteGrid(); };
     grid.appendChild(btn);
-  });
-}
-
-function renderCageSettings(){
-  const list=document.getElementById('cage-list'); if(!list) return;
-  list.innerHTML='';
-  state.cages.forEach((c,i)=>{
-    const row=document.createElement('div'); row.className='cage-row';
-    row.innerHTML=`<div class="cage-icon-preview">${CAGE_ICONS[i+1]}</div><input class="cage-name-input" value="${c}" onchange="state.cages[${i}]=this.value;save()">`;
-    list.appendChild(row);
   });
 }
 
@@ -1247,7 +1423,6 @@ function toggleStickers(){
   document.getElementById('sticker-toggle').classList.toggle('on',state.showStickers);
   save(); renderCalendar();
 }
-
 function clearAllData(){
   if(!confirm('clear all data? this cannot be undone 🥺')) return;
   state.days={}; save(); renderCalendar(); renderStatTiles();
@@ -1263,12 +1438,8 @@ function switchView(v){
   document.getElementById('nav-'+v).classList.add('active');
   if(v==='settings'){ renderCageSettings(); renderPaletteGrid(); renderStatSettingsList(); renderPetNameSelector(); }
 }
-
 function exportImage(){ showToast('screenshot the calendar to share! 📸'); }
 
-// ══════════════════════════════════════
-//  START
-// ══════════════════════════════════════
 init();
 </script>
 </body>
