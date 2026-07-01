@@ -103,21 +103,21 @@ body[data-theme="rubber-pup"] {
 
 /* ══════════ DENSITY (default = larger/tighter, compact = original sizing) ══════════ */
 body[data-density="default"] {
-  --d-app-pad-x:0; --d-app-pad-bottom:0px;
-  --d-header-pad:12px 10px 4px; --d-header-title-size:28px; --d-header-logo-size:34px;
-  --d-stat-tiles-pad:2px 10px 4px; --d-stat-tiles-gap:8px;
-  --d-stat-tile-pad:10px 12px 8px; --d-stat-tile-minw:90px;
-  --d-stat-icon-size:20px; --d-stat-val-size:22px; --d-stat-lbl-size:9px;
-  --d-month-nav-pad:4px 10px 4px; --d-month-label-size:22px;
-  --d-legend-pad:2px 10px 4px; --d-legend-gap:8px;
-  --d-calendar-pad:0 8px; --d-day-label-gap:3px; --d-grid-gap:5px;
+  --d-app-pad-x:0; --d-app-pad-bottom:88px;
+  --d-header-pad:16px 16px 8px; --d-header-title-size:30px; --d-header-logo-size:38px;
+  --d-stat-tiles-pad:4px 16px 6px; --d-stat-tiles-gap:9px;
+  --d-stat-tile-pad:13px 15px 11px; --d-stat-tile-minw:98px;
+  --d-stat-icon-size:22px; --d-stat-val-size:25px; --d-stat-lbl-size:9.5px;
+  --d-month-nav-pad:8px 16px 12px; --d-month-label-size:23px;
+  --d-legend-pad:0 16px 12px; --d-legend-gap:9px;
+  --d-calendar-pad:0 9px; --d-day-label-gap:3px; --d-grid-gap:6px;
   --d-tile-date-size:12px; --d-cage-icon-size:20px;
   --d-sticker-size:23px; --d-sticker-img-size:23px;
   --d-sticker-pos1-top:6%; --d-sticker-pos1-left:4%;
   --d-sticker-pos2-top:36%; --d-sticker-pos2-left:44%;
-  --d-export-pad:10px 16px; --d-export-margin:8px 0 4px;
-  --d-bottomnav-pad:8px 0 calc(env(safe-area-inset-bottom,0px) + 8px);
-  --d-nav-icon-size:24px; --d-nav-item-pad:6px 16px;
+  --d-export-pad:12px 16px; --d-export-margin:16px 0 4px;
+  --d-bottomnav-pad:10px 0 calc(env(safe-area-inset-bottom,0px) + 10px);
+  --d-nav-icon-size:26px; --d-nav-item-pad:7px 18px;
   --d-sticker-pick-size:58px; --d-sticker-pick-img:32px;
   --d-pill-pad:8px 15px; --d-pill-font:14px; --d-pill-img:20px;
 }
@@ -149,10 +149,8 @@ body {
 }
 .app {
   max-width:430px; margin:0 auto;
-  padding:env(safe-area-inset-top,12px) var(--d-app-pad-x) 0;
-  height:100vh; height:-webkit-fill-available;
-  display:flex; flex-direction:column;
-  overflow:hidden;
+  padding:env(safe-area-inset-top,12px) var(--d-app-pad-x) var(--d-app-pad-bottom);
+  min-height:100vh;
 }
 
 /* ── HEADER ── */
@@ -228,32 +226,30 @@ body {
 .stat-hint { font-size:10px; font-weight:700; color:var(--c-textlt); text-align:center; padding:2px 20px 8px; letter-spacing:0.3px; }
 
 /* ── MONTH NAV ── */
-.month-nav { display:flex; align-items:center; justify-content:space-between; padding:var(--d-month-nav-pad); flex-shrink:0; }
-.month-label { font-family:'Fredoka One',cursive; font-size:var(--d-month-label-size); color:var(--c-text); cursor:pointer; user-select:none; -webkit-user-select:none; }
+.month-nav { display:flex; align-items:center; justify-content:space-between; padding:var(--d-month-nav-pad); }
+.month-label { font-family:'Fredoka One',cursive; font-size:var(--d-month-label-size); color:var(--c-text); }
 .nav-btn {
   width:36px; height:36px; border-radius:50%; border:none;
   background:var(--c-white); box-shadow:0 2px 8px var(--c-shadowm);
   font-size:16px; cursor:pointer;
   display:flex; align-items:center; justify-content:center;
-  transition:transform 0.15s; color:var(--c-text); flex-shrink:0;
+  transition:transform 0.15s; color:var(--c-text);
 }
 .nav-btn:active { transform:scale(0.88); }
 
 /* ── LEGEND ── */
-.legend { display:flex; gap:var(--d-legend-gap); padding:var(--d-legend-pad); flex-wrap:wrap; flex-shrink:0; }
-.legend-item { display:flex; align-items:center; gap:4px; font-size:10px; font-weight:700; color:var(--c-textlt); }
-.legend-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
-.legend-sticker { display:flex; align-items:center; gap:4px; font-size:10px; font-weight:700; color:var(--c-textlt); }
-.legend-sticker img { width:13px; height:13px; display:block; }
+.legend { display:flex; gap:var(--d-legend-gap); padding:var(--d-legend-pad); flex-wrap:wrap; }
+.legend-item { display:flex; align-items:center; gap:5px; font-size:11px; font-weight:700; color:var(--c-textlt); }
+.legend-dot { width:12px; height:12px; border-radius:4px; flex-shrink:0; }
 
 /* ── CALENDAR ── */
-.calendar-wrap { padding:var(--d-calendar-pad); flex:1; display:flex; flex-direction:column; min-height:0; }
-.day-labels { display:grid; grid-template-columns:repeat(7,1fr); gap:var(--d-day-label-gap); margin-bottom:4px; flex-shrink:0; }
+.calendar-wrap { padding:var(--d-calendar-pad); }
+.day-labels { display:grid; grid-template-columns:repeat(7,1fr); gap:var(--d-day-label-gap); margin-bottom:6px; }
 .day-label { text-align:center; font-size:11px; font-weight:800; color:var(--c-textlt); letter-spacing:0.5px; }
-.calendar-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:var(--d-grid-gap); flex:1; align-content:stretch; }
+.calendar-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:var(--d-grid-gap); }
 
 /* ── TILE ── */
-.tile { border-radius:var(--radius-tile); position:relative; cursor:pointer; transition:transform 0.12s; overflow:visible; min-height:0; }
+.tile { aspect-ratio:1; border-radius:var(--radius-tile); position:relative; cursor:pointer; transition:transform 0.12s; overflow:visible; }
 .tile:active { transform:scale(0.9); }
 .tile.empty { background:transparent; cursor:default; pointer-events:none; }
 .tile.future,.tile.before-start { cursor:default; pointer-events:none; }
@@ -395,13 +391,11 @@ body {
 
 /* ── BOTTOM NAV ── */
 .bottom-nav {
-  position:relative; bottom:auto; left:auto; right:auto;
+  position:fixed; bottom:0; left:0; right:0;
   background:var(--c-nav-bg); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
   border-top:1px solid var(--c-border);
   padding:var(--d-bottomnav-pad);
   display:flex; justify-content:space-around; z-index:50;
-  flex-shrink:0;
-  padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
 }
 .nav-item {
   display:flex; flex-direction:column; align-items:center; gap:2px;
@@ -415,10 +409,8 @@ body {
 .nav-item.active .nav-text { color:var(--c-nav-acttxt); }
 
 /* ── VIEWS ── */
-.view { display:none; flex-direction:column; flex:1; overflow:hidden; padding:0; }
-.view.active { display:flex; }
-#view-settings { overflow-y:auto; padding:0 20px; display:none; }
-#view-settings.active { display:block; }
+.view { display:none; padding:0 20px; }
+.view.active { display:block; }
 
 /* ── SETTINGS ── */
 .settings-section { margin-bottom:24px; }
@@ -609,16 +601,20 @@ body {
 
   <!-- STAT TILES -->
   <div class="stat-tiles-wrap" id="stat-tiles-wrap"></div>
+  <div class="stat-hint">hold a stat to pin it to the header</div>
 
   <!-- CALENDAR VIEW -->
   <div class="view active" id="view-calendar">
     <div class="month-nav">
       <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
-      <div class="month-label" id="month-label"
-        onpointerdown="startMonthLongPress()"
-        onpointerup="cancelMonthLongPress()"
-        onpointerleave="cancelMonthLongPress()"></div>
+      <div class="month-label" id="month-label"></div>
       <button class="nav-btn" onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--c-none)"></div>no orgasm</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--c-orgasm)"></div>orgasm</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--c-ruined)"></div>ruined</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--c-forbid)"></div>forbidden</div>
     </div>
     <div class="calendar-wrap">
       <div class="day-labels">
@@ -629,7 +625,7 @@ body {
       </div>
       <div class="calendar-grid" id="calendar-grid"></div>
     </div>
-    <div class="legend" id="legend"></div>
+    <button class="export-btn" onclick="exportImage()"><img src="icons/icon-share.png" alt="">screenshot to share</button>
   </div>
 
   <!-- SETTINGS VIEW -->
@@ -1039,7 +1035,6 @@ function init(){
   document.getElementById('start-date-input').value=state.startDate||'';
   renderOrgasmPills();
   renderCalendar();
-  renderLegend();
   renderStatTiles();
   renderHeaderPins();
   renderDensityGrid();
@@ -1241,55 +1236,11 @@ function maybeStickerToast(stickers){
 // ══════════════════════════════════════
 //  CALENDAR
 // ══════════════════════════════════════
-let monthLongPressTimer=null;
-function startMonthLongPress(){
-  monthLongPressTimer=setTimeout(()=>{ exportImage(); if(navigator.vibrate) navigator.vibrate(30); }, 600);
-}
-function cancelMonthLongPress(){ clearTimeout(monthLongPressTimer); }
-
 function changeMonth(dir){
   currentMonth+=dir;
   if(currentMonth>11){currentMonth=0;currentYear++;}
   if(currentMonth<0){currentMonth=11;currentYear--;}
   renderCalendar();
-  renderLegend();
-}
-
-function renderLegend(){
-  const el=document.getElementById('legend'); if(!el) return;
-  el.innerHTML='';
-
-  // Always-shown color dots
-  const colors=[
-    {color:'var(--c-none)',   label:'no orgasm'},
-    {color:'var(--c-orgasm)', label:'orgasm'},
-    {color:'var(--c-ruined)', label:'ruined'},
-    {color:'var(--c-forbid)', label:'forbidden'},
-  ];
-  colors.forEach(c=>{
-    const item=document.createElement('div');
-    item.className='legend-item';
-    item.innerHTML=`<div class="legend-dot" style="background:${c.color}"></div>${c.label}`;
-    el.appendChild(item);
-  });
-
-  // Dynamic sticker legend: collect stickers used in current month
-  const prefix=`${currentYear}-${String(currentMonth+1).padStart(2,'0')}`;
-  const startDt=state.startDate?parseDate(state.startDate):null;
-  const usedStickerIds=new Set();
-  Object.entries(state.days).forEach(([k,v])=>{
-    if(!k.startsWith(prefix)) return;
-    if(startDt&&parseDate(k)<startDt) return;
-    (v.stickers||[]).slice(0,2).forEach(sid=>usedStickerIds.add(sid));
-  });
-
-  usedStickerIds.forEach(sid=>{
-    const s=stickerById(sid); if(!s) return;
-    const item=document.createElement('div');
-    item.className='legend-sticker';
-    item.innerHTML=`${stickerIconHtml(s)}<span>${s.label}</span>`;
-    el.appendChild(item);
-  });
 }
 
 function renderCalendar(){
@@ -1442,7 +1393,7 @@ function closeModalOnOverlay(e){ if(e.target===document.getElementById('modal-ov
 function saveDay(){
   if(!editingDate) return;
   state.days[editingDate]={orgasm:selectedOrgasm,cage:selectedCage,stickers:[...selectedStickers],notes:document.getElementById('day-notes').value,mood:selectedMood};
-  save(); renderCalendar(); renderLegend(); renderStatTiles();
+  save(); renderCalendar(); renderStatTiles();
   if(ORGASM_MSGS[selectedOrgasm]) showToast(pick(ORGASM_MSGS[selectedOrgasm])());
   if(selectedMood&&MOOD_MSGS[selectedMood]) showToast(pick(MOOD_MSGS[selectedMood])());
   if(selectedStickers.size>0) maybeStickerToast([...selectedStickers]);
@@ -1451,7 +1402,7 @@ function saveDay(){
 function clearDay(){
   if(!editingDate) return;
   delete state.days[editingDate];
-  save(); renderCalendar(); renderLegend(); renderStatTiles(); closeModal();
+  save(); renderCalendar(); renderStatTiles(); closeModal();
 }
 
 // ══════════════════════════════════════
@@ -1664,7 +1615,7 @@ function switchView(v){
   document.getElementById('nav-'+v).classList.add('active');
   if(v==='settings'){ renderCageSettings(); renderPaletteGrid(); renderDensityGrid(); renderStatSettingsList(); renderIdentityTags(); }
 }
-function exportImage(){ showToast('long pressed — screenshot now to share!'); }
+function exportImage(){ showToast('screenshot the calendar to share! 📸'); }
 
 init();
 </script>
