@@ -615,6 +615,9 @@ body {
     </div>
     <div class="settings-section">
       <div class="settings-title">🗑 data</div>
+      <button class="delete-btn" style="margin-bottom:8px" onclick="exportData()">📤 export data backup</button>
+      <button class="delete-btn" style="margin-bottom:8px" onclick="document.getElementById('import-file-input').click()">📥 import data backup</button>
+      <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importData(this)">
       <button class="delete-btn" onclick="clearAllData()">clear all data</button>
     </div>
     <div style="padding:24px 0 8px;text-align:center">
@@ -1878,6 +1881,47 @@ function switchView(v){
   document.getElementById('nav-'+v).classList.add('active');
   if(v==='settings'){ renderCageSettings(); renderPaletteGrid(); renderDensityGrid(); renderStatSettingsList(); renderIdentityTags(); updateBulkFillVisibility(); }
 }
+function exportData(){
+  const json=JSON.stringify(state, null, 2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const date=fmtDate(new Date());
+  a.href=url; a.download=`puplock-backup-${date}.json`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast('data exported!');
+}
+
+function importData(input){
+  const file=input.files[0]; if(!file) return;
+  if(!confirm('import this backup? your current data will be replaced.')) { input.value=''; return; }
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const parsed=JSON.parse(e.target.result);
+      if(typeof parsed!=='object'||!parsed.days) throw new Error('invalid file');
+      state={...state,...parsed};
+      if(!state.customThemes) state.customThemes=[];
+      if(!state.cages||!state.cages.length) state.cages=JSON.parse(JSON.stringify(DEFAULT_CAGES));
+      STAT_DEFS.forEach(sd=>{ if(state.statEnabled[sd.id]===undefined) state.statEnabled[sd.id]=true; });
+      save();
+      document.body.setAttribute('data-theme', state.theme||'soft-puppy');
+      document.body.setAttribute('data-density', state.density||'default');
+      applyActiveCustomTheme();
+      renderCurrentCalView(); renderStatTiles(); renderHeaderPins();
+      if(document.getElementById('view-settings').classList.contains('active')){
+        renderCageSettings(); renderPaletteGrid(); renderDensityGrid(); renderStatSettingsList(); renderIdentityTags(); updateBulkFillVisibility();
+      }
+      showToast('data imported successfully!');
+    } catch(err){
+      showToast('import failed — invalid file');
+    }
+    input.value='';
+  };
+  reader.readAsText(file);
+}
+
 function exportImage(){ showToast('screenshot the calendar to share!'); }
 
 init();
