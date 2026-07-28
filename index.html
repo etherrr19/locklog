@@ -268,7 +268,47 @@ body {
 }
 .view-tab:active { transform:scale(0.96); }
 
-/* ── WEEK VIEW ── */
+/* ── YEAR VIEW ── */
+.year-view-wrap { padding:4px 0 8px; }
+.year-nav { display:flex; align-items:center; justify-content:center; gap:12px; padding:0 0 10px; }
+.year-label-text { font-family:'Fredoka One',cursive; font-size:18px; color:var(--c-text); }
+.year-grid-wrap { overflow-x:auto; padding:0 8px; }
+.year-grid { display:table; border-collapse:separate; border-spacing:3px; width:100%; }
+.year-row { display:table-row; }
+.year-month-label {
+  display:table-cell; vertical-align:middle;
+  font-size:10px; font-weight:800; color:var(--c-textlt);
+  padding-right:6px; white-space:nowrap; width:28px;
+}
+.year-cell {
+  display:table-cell; vertical-align:middle;
+  border-radius:4px;
+  width:calc((100vw - 80px) / 31);
+  max-width:22px;
+  aspect-ratio:1;
+  box-shadow:0 1px 3px var(--c-shadow);
+}
+.year-cell-empty { display:table-cell; }
+
+/* ── TOTAL VIEW ── */
+.total-view-wrap { padding:4px 8px 8px; }
+.total-grid {
+  display:grid;
+  gap:4px;
+}
+.total-cell {
+  aspect-ratio:1;
+  border-radius:6px;
+  position:relative;
+  box-shadow:0 1px 4px var(--c-shadow);
+  display:flex; align-items:center; justify-content:center;
+}
+.total-cell-num {
+  font-size:8px; font-weight:800;
+  color:var(--c-text); opacity:0.55;
+  line-height:1; user-select:none;
+}
+.total-cell-empty { aspect-ratio:1; }
 .week-view-wrap { padding:8px 0 0; }
 .week-row {
   display:flex; align-items:stretch;
@@ -493,10 +533,18 @@ body {
     <div id="calview-week" style="display:none">
       <div class="week-view-wrap" id="week-view-wrap"></div>
     </div>
+    <div id="calview-year" style="display:none">
+      <div class="year-view-wrap" id="year-view-wrap"></div>
+    </div>
+    <div id="calview-total" style="display:none">
+      <div class="total-view-wrap" id="total-view-wrap"></div>
+    </div>
     <!-- view switcher buttons BELOW the content -->
     <div class="cal-view-tab-bar">
-      <button class="view-tab" id="tab-week" onclick="switchCalView('week')">WEEK</button>
+      <button class="view-tab" id="tab-week"  onclick="switchCalView('week')">WEEK</button>
       <button class="view-tab active" id="tab-month" onclick="switchCalView('month')">MONTH</button>
+      <button class="view-tab" id="tab-year"  onclick="switchCalView('year')">YEAR</button>
+      <button class="view-tab" id="tab-total" onclick="switchCalView('total')">TOTAL</button>
     </div>
     <button class="export-btn" onclick="exportImage()"><img src="icons/icon-share.png" alt="">screenshot to share</button>
   </div>
@@ -540,6 +588,13 @@ body {
       <button class="add-identity-btn" id="add-identity-btn" onclick="addCustomIdentityTag()">＋ add your own</button>
     </div>
     <div class="settings-section">
+      <div class="settings-title">👁 display</div>
+      <div class="toggle-row">
+        <div class="toggle-label">show stickers on tiles</div>
+        <button class="toggle on" id="sticker-toggle" onclick="toggleStickers()"></button>
+      </div>
+    </div>
+    <div class="settings-section">
       <div class="settings-title">📊 stats</div>
       <div id="stat-settings-list"></div>
     </div>
@@ -559,15 +614,14 @@ body {
       <button class="add-cage-btn" id="add-cage-btn" onclick="addCage()">＋ add a cage</button>
     </div>
     <div class="settings-section">
-      <div class="settings-title">👁 display</div>
-      <div class="toggle-row">
-        <div class="toggle-label">show stickers on tiles</div>
-        <button class="toggle on" id="sticker-toggle" onclick="toggleStickers()"></button>
-      </div>
-    </div>
-    <div class="settings-section">
       <div class="settings-title">🗑 data</div>
       <button class="delete-btn" onclick="clearAllData()">clear all data</button>
+    </div>
+    <div style="padding:24px 0 8px;text-align:center">
+      <p style="font-size:11px;font-weight:700;color:var(--c-textlt);opacity:0.55;line-height:1.6">
+        pup lock was made using generative AI<br>
+        All icons were drawn with my own two paws 🐾
+      </p>
     </div>
   </div>
 </div>
@@ -854,6 +908,7 @@ let state = {
   pinnedStats: [],
   calView: 'month',
   weekOffset: 0,
+  yearView: null, // null = current year
   customThemes: [], // [{id, name, colors:{none,orgasm,ruined,forbid,bg,modal,card,text,accent}}]
   activeCustomThemeId: null,
 };
@@ -1123,17 +1178,34 @@ function switchCalView(v, silent){
   state.calView=v; if(!silent) save();
   document.querySelectorAll('.view-tab').forEach(t=>t.classList.remove('active'));
   const tab=document.getElementById('tab-'+v); if(tab) tab.classList.add('active');
-  document.getElementById('calview-month').style.display=v==='month'?'':'none';
-  document.getElementById('calview-week').style.display=v==='week'?'':'none';
+  ['month','week','year','total'].forEach(n=>{
+    const el=document.getElementById('calview-'+n);
+    if(el) el.style.display=n===v?'':'none';
+  });
+  // year/total views don't use the month nav arrows for navigation
+  const nav=document.querySelector('.month-nav');
+  if(nav){
+    const btns=nav.querySelectorAll('.nav-btn');
+    btns.forEach(b=>b.style.visibility=(v==='total')?'hidden':'visible');
+  }
   renderCurrentCalView();
 }
 function renderCurrentCalView(){
-  if((state.calView||'month')==='week') renderWeekView();
+  const v=state.calView||'month';
+  if(v==='week')  renderWeekView();
+  else if(v==='year') renderYearView();
+  else if(v==='total') renderTotalView();
   else renderCalendar();
 }
 function navigatePeriod(dir){
-  if((state.calView||'month')==='week'){
+  const v=state.calView||'month';
+  if(v==='week'){
     state.weekOffset=(state.weekOffset||0)+dir; save(); renderWeekView();
+  } else if(v==='year'){
+    if(!state.yearView) state.yearView=new Date().getFullYear();
+    state.yearView+=dir; save(); renderYearView();
+  } else if(v==='total'){
+    // no navigation for total view
   } else {
     currentMonth+=dir;
     if(currentMonth>11){currentMonth=0;currentYear++;}
@@ -1263,8 +1335,104 @@ function renderWeekView(){
 }
 
 // ══════════════════════════════════════
-//  MODAL
+//  YEAR VIEW
 // ══════════════════════════════════════
+function renderYearView(){
+  if(!state.yearView) state.yearView=new Date().getFullYear();
+  const year=state.yearView;
+  document.getElementById('month-label').textContent=String(year);
+
+  const startDt=state.startDate?parseDate(state.startDate):null;
+  const wrap=document.getElementById('year-view-wrap');
+  wrap.innerHTML='';
+
+  // helper to get bg color string for a day
+  function dayBg(ds){
+    const d=parseDate(ds);
+    if(d>TODAY) return 'var(--c-future)';
+    if(startDt&&d<startDt) return 'var(--c-tile-empty)';
+    const day=state.days[ds];
+    if(!day) return 'var(--c-none)';
+    const m={none:'var(--c-none)',orgasm:'var(--c-orgasm)',ruined:'var(--c-ruined)',forbidden:'var(--c-forbid)'};
+    return m[day.orgasm]||'var(--c-none)';
+  }
+
+  const table=document.createElement('div'); table.className='year-grid';
+
+  for(let mo=0;mo<12;mo++){
+    const row=document.createElement('div'); row.className='year-row';
+    // month label
+    const mlabel=document.createElement('div'); mlabel.className='year-month-label';
+    mlabel.textContent=MONTHS_SHORT[mo]; row.appendChild(mlabel);
+    // days 1-31
+    const daysInMo=new Date(year,mo+1,0).getDate();
+    for(let d=1;d<=31;d++){
+      const cell=document.createElement('div');
+      if(d>daysInMo){
+        cell.className='year-cell-empty';
+      } else {
+        const ds=`${year}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        cell.className='year-cell';
+        cell.style.background=dayBg(ds);
+        cell.onclick=()=>{
+          const dt=parseDate(ds);
+          if(dt<=TODAY&&(!startDt||dt>=startDt)) openModal(ds);
+        };
+      }
+      row.appendChild(cell);
+    }
+    table.appendChild(row);
+  }
+  wrap.appendChild(table);
+}
+
+// ══════════════════════════════════════
+//  TOTAL VIEW
+// ══════════════════════════════════════
+function renderTotalView(){
+  const wrap=document.getElementById('total-view-wrap');
+  wrap.innerHTML='';
+  const startDt=state.startDate?parseDate(state.startDate):null;
+  if(!startDt){ wrap.innerHTML='<p style="text-align:center;color:var(--c-textlt);padding:24px;font-size:13px;font-weight:700">set a start date in settings to see total view</p>'; return; }
+
+  // collect all days from start to today, in order
+  const allDays=[];
+  for(let d=new Date(startDt);d<=TODAY;d.setDate(d.getDate()+1)){
+    allDays.push(fmtDate(new Date(d)));
+  }
+  const total=allDays.length;
+  if(total===0){ wrap.innerHTML='<p style="text-align:center;color:var(--c-textlt);padding:24px;font-size:13px;font-weight:700">no days tracked yet</p>'; return; }
+
+  // round up to nearest perfect square
+  const side=Math.ceil(Math.sqrt(total));
+  const gridTotal=side*side;
+
+  // update month label
+  document.getElementById('month-label').textContent=`${total} days`;
+
+  const grid=document.createElement('div');
+  grid.className='total-grid';
+  grid.style.gridTemplateColumns=`repeat(${side}, 1fr)`;
+
+  for(let i=0;i<gridTotal;i++){
+    if(i<total){
+      const ds=allDays[i];
+      const dayData=state.days[ds];
+      const cell=document.createElement('div'); cell.className='total-cell';
+      const bgMap={none:'var(--c-none)',orgasm:'var(--c-orgasm)',ruined:'var(--c-ruined)',forbidden:'var(--c-forbid)'};
+      cell.style.background=dayData?(bgMap[dayData.orgasm]||'var(--c-none)'):'var(--c-none)';
+      const num=document.createElement('div'); num.className='total-cell-num'; num.textContent=i+1;
+      cell.appendChild(num);
+      cell.onclick=()=>openModal(ds);
+      grid.appendChild(cell);
+    } else {
+      const empty=document.createElement('div'); empty.className='total-cell-empty'; grid.appendChild(empty);
+    }
+  }
+  wrap.appendChild(grid);
+}
+
+
 function openModal(ds){
   editingDate=ds;
   const d=parseDate(ds);
