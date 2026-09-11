@@ -10,6 +10,7 @@
 <link rel="icon" href="icons/favicon.png">
 <title>pup lock</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fredoka+One&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 /* ══════════ THEMES ══════════ */
 body[data-theme="soft-puppy"] {
@@ -490,9 +491,49 @@ body {
 .mini-input { width:100%; border:2px solid var(--c-border); border-radius:14px; padding:10px 14px; font-family:'Nunito',sans-serif; font-size:16px; font-weight:700; color:var(--c-text); background:var(--c-white); outline:none; margin-bottom:10px; }
 .mini-input:focus { border-color:var(--c-accent); }
 .emoji-preview { font-size:40px; text-align:center; padding:10px 0 4px; display:block; cursor:pointer; }
+
+/* ── AUTH ── */
+#auth-overlay { position:fixed; inset:0; z-index:1000; background:var(--c-bg); display:flex; align-items:center; justify-content:center; padding:24px; }
+#auth-overlay.hidden { display:none; }
+.auth-card { width:100%; max-width:380px; background:var(--c-white); border-radius:var(--radius-xl); padding:28px 22px; box-shadow:0 8px 32px var(--c-shadowm); }
+.auth-title { font-family:'Fredoka One',cursive; font-size:26px; color:var(--c-text); text-align:center; margin-bottom:4px; }
+.auth-subtitle { font-size:13px; color:var(--c-textlt); text-align:center; margin-bottom:18px; }
+.auth-error { font-size:12px; font-weight:700; color:#cc2244; text-align:center; margin:-6px 0 10px; min-height:14px; }
+.auth-submit-btn { width:100%; padding:12px; border-radius:16px; border:none; background:var(--c-btn); color:#fff; font-family:'Nunito',sans-serif; font-size:15px; font-weight:800; cursor:pointer; margin-top:4px; transition:transform 0.15s; }
+.auth-submit-btn:active { transform:scale(0.97); }
+.auth-submit-btn:disabled { opacity:0.5; }
+.auth-switch { text-align:center; font-size:12px; color:var(--c-textlt); margin-top:14px; }
+.auth-switch a { color:var(--c-accent); font-weight:800; cursor:pointer; text-decoration:none; }
+.auth-skip { text-align:center; font-size:11px; color:var(--c-textlt); margin-top:16px; cursor:pointer; text-decoration:underline; }
+.auth-loading { text-align:center; font-size:13px; color:var(--c-textlt); padding:40px 0; }
+
+/* ── ACCOUNT SETTINGS SECTION ── */
+.account-row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.account-email { font-size:13px; font-weight:700; color:var(--c-text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.account-status { font-size:11px; color:var(--c-textlt); margin-top:2px; }
+.account-signin-btn { padding:8px 16px; border-radius:20px; border:none; background:var(--c-btn); color:#fff; font-family:'Nunito',sans-serif; font-size:12px; font-weight:800; cursor:pointer; }
 </style>
 </head>
 <body data-theme="soft-puppy" data-density="default">
+
+<!-- AUTH OVERLAY -->
+<div id="auth-overlay">
+  <div class="auth-card">
+    <div id="auth-loading-state" class="auth-loading">loading...</div>
+    <div id="auth-form-state" style="display:none">
+      <div class="auth-title">pup lock <img src="icons/logo-main.png" alt="" style="width:26px;height:26px;vertical-align:-5px"></div>
+      <div class="auth-subtitle" id="auth-subtitle">log in to sync across devices</div>
+      <div class="auth-error" id="auth-error"></div>
+      <input type="email" class="mini-input" id="auth-email" placeholder="email" autocomplete="email">
+      <input type="password" class="mini-input" id="auth-password" placeholder="password" autocomplete="current-password" style="margin-bottom:4px">
+      <button class="auth-submit-btn" id="auth-submit-btn" onclick="handleAuthSubmit()">log in</button>
+      <div class="auth-switch" id="auth-switch">
+        no account? <a onclick="toggleAuthMode()">sign up</a>
+      </div>
+      <div class="auth-skip" onclick="continueOffline()">continue without an account</div>
+    </div>
+  </div>
+</div>
 
 <div class="deco-paw" style="top:-10px;right:-20px;transform:rotate(20deg)">🐾</div>
 <div class="deco-paw" style="bottom:100px;left:-20px;transform:rotate(-15deg)">🐾</div>
@@ -552,6 +593,24 @@ body {
   <!-- SETTINGS VIEW -->
   <div class="view" id="view-settings">
     <div style="height:16px"></div>
+    <div class="settings-section">
+      <div class="settings-title"><img src="icons/icon-lock.png" alt="">account</div>
+      <div id="account-signed-in" style="display:none">
+        <div class="account-row">
+          <div>
+            <div class="account-email" id="account-email-display"></div>
+            <div class="account-status" id="account-sync-status">synced</div>
+          </div>
+          <button class="delete-btn" style="margin:0;padding:8px 16px" onclick="handleSignOut()">sign out</button>
+        </div>
+      </div>
+      <div id="account-signed-out">
+        <div class="account-row">
+          <div class="account-status">not signed in — data stays on this device only</div>
+        </div>
+        <button class="account-signin-btn" style="width:100%;margin-top:8px" onclick="openAuthOverlay()">log in / sign up</button>
+      </div>
+    </div>
     <div class="settings-section">
       <div class="settings-title"><img src="icons/icon-calendar.png" alt="">start date</div>
       <div class="start-date-row">
@@ -720,7 +779,13 @@ body {
 // ══════════════════════════════════════
 //  CONSTANTS
 // ══════════════════════════════════════
-const STORAGE_KEY = 'locklog_v7';
+const STORAGE_KEY = 'locklog_v8';
+// ══════════════════════════════════════
+//  SUPABASE CONFIG — fill these in from your project's Settings > API page
+// ══════════════════════════════════════
+const SUPABASE_URL = 'https://cbyihcgwajgubipeeeqh.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR-ANON-PUBLIC-KEY-HERE';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const TODAY_STR = fmtDate(TODAY);
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -968,7 +1033,7 @@ function load(){
   }catch(e){}
 }
 function migrateOldData(){
-  for(const oldKey of ['locklog_v6','locklog_v5','locklog_v4','locklog_v3','locklog_v2','locklog_v1']){
+  for(const oldKey of ['locklog_v7','locklog_v6','locklog_v5','locklog_v4','locklog_v3','locklog_v2','locklog_v1']){
     try{
       const raw=localStorage.getItem(oldKey);
       if(!raw) continue;
@@ -1007,7 +1072,225 @@ function migrateOldData(){
     }catch(e){}
   }
 }
-function save(){ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(e){} }
+function save(){ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(e){} syncProfileToCloud(); }
+
+// ══════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════
+let currentUser = null;
+let authMode = 'signin'; // 'signin' | 'signup'
+const SKIP_AUTH_KEY = 'puplock_skip_auth';
+
+function toggleAuthMode(){
+  authMode = authMode==='signin' ? 'signup' : 'signin';
+  document.getElementById('auth-submit-btn').textContent = authMode==='signin' ? 'log in' : 'sign up';
+  document.getElementById('auth-subtitle').textContent = authMode==='signin' ? 'log in to sync across devices' : 'create an account to sync across devices';
+  document.getElementById('auth-switch').innerHTML = authMode==='signin'
+    ? 'no account? <a onclick="toggleAuthMode()">sign up</a>'
+    : 'already have an account? <a onclick="toggleAuthMode()">log in</a>';
+  document.getElementById('auth-error').textContent='';
+}
+
+function openAuthOverlay(){
+  document.getElementById('auth-loading-state').style.display='none';
+  document.getElementById('auth-form-state').style.display='block';
+  document.getElementById('auth-overlay').classList.remove('hidden');
+}
+function closeAuthOverlay(){ document.getElementById('auth-overlay').classList.add('hidden'); }
+function continueOffline(){
+  try{ localStorage.setItem(SKIP_AUTH_KEY,'1'); }catch(e){}
+  closeAuthOverlay();
+}
+
+async function handleAuthSubmit(){
+  const email=document.getElementById('auth-email').value.trim();
+  const password=document.getElementById('auth-password').value;
+  const errEl=document.getElementById('auth-error');
+  const btn=document.getElementById('auth-submit-btn');
+  errEl.textContent='';
+  if(!email||!password){ errEl.textContent='enter an email and password'; return; }
+  btn.disabled=true; btn.textContent='...';
+  try{
+    if(authMode==='signin'){
+      const {error} = await sb.auth.signInWithPassword({email,password});
+      if(error) throw error;
+    } else {
+      const {error} = await sb.auth.signUp({email,password});
+      if(error) throw error;
+    }
+    // onAuthStateChange handles the rest (closing overlay, loading cloud data)
+  } catch(err){
+    errEl.textContent = err.message || 'something went wrong';
+  } finally {
+    btn.disabled=false; btn.textContent = authMode==='signin' ? 'log in' : 'sign up';
+  }
+}
+
+async function handleSignOut(){
+  if(!confirm('sign out? your data stays saved to your account, and stays on this device too.')) return;
+  await sb.auth.signOut();
+}
+
+function updateAccountUI(){
+  const signedIn = !!currentUser;
+  document.getElementById('account-signed-in').style.display = signedIn ? 'block' : 'none';
+  document.getElementById('account-signed-out').style.display = signedIn ? 'none' : 'block';
+  if(signedIn) document.getElementById('account-email-display').textContent = currentUser.email;
+}
+
+// runs once on load: checks session, shows overlay or loads cloud data
+async function initAuth(){
+  const {data:{session}} = await sb.auth.getSession();
+  currentUser = session ? session.user : null;
+  if(currentUser){
+    await loadCloudData();
+    closeAuthOverlay();
+  } else {
+    let skipped=false;
+    try{ skipped = localStorage.getItem(SKIP_AUTH_KEY)==='1'; }catch(e){}
+    if(skipped) closeAuthOverlay(); else openAuthOverlay();
+  }
+  updateAccountUI();
+
+  sb.auth.onAuthStateChange(async (event, session) => {
+    const wasSignedOut = !currentUser;
+    currentUser = session ? session.user : null;
+    updateAccountUI();
+    if(event==='SIGNED_IN' && currentUser){
+      await loadCloudData();
+      closeAuthOverlay();
+      refreshAllViews();
+    } else if(event==='SIGNED_OUT'){
+      showToast('signed out');
+    }
+  });
+}
+
+// ══════════════════════════════════════
+//  CLOUD SYNC
+// ══════════════════════════════════════
+function debounce(fn, ms){
+  let t;
+  return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); };
+}
+
+const syncProfileToCloud = debounce(async ()=>{
+  if(!currentUser) return;
+  const statusEl=document.getElementById('account-sync-status');
+  if(statusEl) statusEl.textContent='syncing...';
+  const settings = {
+    density: state.density,
+    identityTags: state.identityTags,
+    customIdentityTags: state.customIdentityTags,
+    customStickers: state.customStickers,
+    statEnabled: state.statEnabled,
+    pinnedStats: state.pinnedStats,
+    customThemes: state.customThemes,
+    activeCustomThemeId: state.activeCustomThemeId,
+    cages: state.cages,
+  };
+  const {error} = await sb.from('profiles').upsert({
+    id: currentUser.id,
+    theme: state.theme,
+    show_stickers: state.showStickers,
+    start_date: state.startDate,
+    settings,
+  });
+  if(statusEl) statusEl.textContent = error ? 'sync failed — will retry' : 'synced';
+}, 800);
+
+async function syncDayToCloud(dateStr, day){
+  if(!currentUser) return;
+  const {error} = await sb.from('days').upsert({
+    user_id: currentUser.id,
+    date: dateStr,
+    orgasm: day.orgasm||'none',
+    cage: day.cage||'none',
+    stickers: day.stickers||[],
+    notes: day.notes||'',
+    mood: day.mood||null,
+  }, {onConflict:'user_id,date'});
+  const statusEl=document.getElementById('account-sync-status');
+  if(statusEl) statusEl.textContent = error ? 'sync failed — will retry' : 'synced';
+}
+
+async function deleteDayFromCloud(dateStr){
+  if(!currentUser) return;
+  await sb.from('days').delete().eq('user_id',currentUser.id).eq('date',dateStr);
+}
+
+// pulls profile + days down from the cloud after login, merging/overwriting local state
+async function loadCloudData(){
+  if(!currentUser) return;
+  const [{data:profile}, {data:days, error:daysErr}] = await Promise.all([
+    sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle(),
+    sb.from('days').select('*').eq('user_id',currentUser.id),
+  ]);
+
+  const hasCloudData = (days && days.length>0) || (profile && profile.settings && Object.keys(profile.settings).length>0);
+  const hasLocalData = Object.keys(state.days||{}).length>0;
+
+  if(!hasCloudData && hasLocalData){
+    const doImport = confirm('we found existing data on this device — import it into your account?');
+    if(doImport){
+      await importLocalDataToCloud();
+      return; // importLocalDataToCloud re-loads cloud data at the end
+    }
+  }
+
+  // merge cloud profile into local state
+  if(profile){
+    state.theme = profile.theme || state.theme;
+    if(profile.show_stickers!==null && profile.show_stickers!==undefined) state.showStickers = profile.show_stickers;
+    if(profile.start_date) state.startDate = profile.start_date;
+    if(profile.settings) state = {...state, ...profile.settings};
+  }
+  // rebuild days from cloud rows (cloud is now source of truth once logged in)
+  const daysObj={};
+  (days||[]).forEach(r=>{ daysObj[r.date]={orgasm:r.orgasm,cage:r.cage,stickers:r.stickers||[],notes:r.notes||'',mood:r.mood||null}; });
+  state.days = daysObj;
+
+  STAT_DEFS.forEach(sd=>{ if(state.statEnabled[sd.id]===undefined) state.statEnabled[sd.id]=true; });
+  if(!state.cages||!state.cages.length) state.cages=JSON.parse(JSON.stringify(DEFAULT_CAGES));
+  if(!state.customThemes) state.customThemes=[];
+
+  try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }catch(e){}
+  refreshAllViews();
+}
+
+async function importLocalDataToCloud(){
+  const statusEl=document.getElementById('account-sync-status');
+  if(statusEl) statusEl.textContent='importing...';
+  const settings = {
+    density: state.density, identityTags: state.identityTags, customIdentityTags: state.customIdentityTags,
+    customStickers: state.customStickers, statEnabled: state.statEnabled, pinnedStats: state.pinnedStats,
+    customThemes: state.customThemes, activeCustomThemeId: state.activeCustomThemeId, cages: state.cages,
+  };
+  await sb.from('profiles').upsert({ id: currentUser.id, theme: state.theme, show_stickers: state.showStickers, start_date: state.startDate, settings });
+  // bulk push all local days
+  const rows = Object.entries(state.days||{}).map(([date,day])=>({
+    user_id: currentUser.id, date, orgasm: day.orgasm||'none', cage: day.cage||'none',
+    stickers: day.stickers||[], notes: day.notes||'', mood: day.mood||null,
+  }));
+  if(rows.length){
+    const {error} = await sb.from('days').upsert(rows, {onConflict:'user_id,date'});
+    if(error){ showToast('import failed — try again from settings'); if(statusEl) statusEl.textContent='import failed'; return; }
+  }
+  showToast(`imported ${rows.length} day${rows.length===1?'':'s'} to your account!`);
+  await loadCloudData();
+}
+
+function refreshAllViews(){
+  document.body.setAttribute('data-theme',state.theme||'soft-puppy');
+  document.body.setAttribute('data-density',state.density||'default');
+  document.getElementById('start-date-input').value=state.startDate||'';
+  applyActiveCustomTheme();
+  renderCurrentCalView(); renderStatTiles(); renderHeaderPins();
+  const sTog=document.getElementById('sticker-toggle'); if(sTog) sTog.classList.toggle('on',state.showStickers);
+  if(document.getElementById('view-settings').classList.contains('active')){
+    renderCageSettings(); renderPaletteGrid(); renderDensityGrid(); renderStatSettingsList(); renderIdentityTags(); updateBulkFillVisibility();
+  }
+}
 
 // ══════════════════════════════════════
 //  INIT
@@ -1027,6 +1310,7 @@ function init(){
   updateBulkFillVisibility();
   // restore tab state
   switchCalView(state.calView||'month', true);
+  initAuth();
 }
 
 // ══════════════════════════════════════
@@ -1493,6 +1777,7 @@ function saveDay(){
   if(!editingDate) return;
   state.days[editingDate]={orgasm:selectedOrgasm,cage:selectedCage,stickers:[...selectedStickers],notes:document.getElementById('day-notes').value,mood:selectedMood};
   save(); renderCurrentCalView(); renderStatTiles();
+  syncDayToCloud(editingDate, state.days[editingDate]);
   if(ORGASM_MSGS[selectedOrgasm]) showToast(pick(ORGASM_MSGS[selectedOrgasm])());
   if(selectedMood&&MOOD_MSGS[selectedMood]) showToast(pick(MOOD_MSGS[selectedMood])());
   if(selectedStickers.size>0) maybeStickerToast([...selectedStickers]);
@@ -1502,6 +1787,7 @@ function clearDay(){
   if(!editingDate) return;
   delete state.days[editingDate];
   save(); renderCurrentCalView(); renderStatTiles(); closeModal();
+  deleteDayFromCloud(editingDate);
 }
 
 // ══════════════════════════════════════
