@@ -520,17 +520,40 @@ body {
 <div id="auth-overlay">
   <div class="auth-card">
     <div id="auth-loading-state" class="auth-loading">loading...</div>
+
     <div id="auth-form-state" style="display:none">
       <div class="auth-title">pup lock <img src="icons/logo-main.png" alt="" style="width:26px;height:26px;vertical-align:-5px"></div>
       <div class="auth-subtitle" id="auth-subtitle">log in to sync across devices</div>
       <div class="auth-error" id="auth-error"></div>
-      <input type="email" class="mini-input" id="auth-email" placeholder="email" autocomplete="email">
+      <input type="text" class="mini-input" id="auth-username" placeholder="username or email" autocomplete="username" maxlength="40">
+      <div id="auth-email-field-wrap" style="display:none">
+        <input type="email" class="mini-input" id="auth-email" placeholder="email (optional)" autocomplete="email" style="margin-bottom:2px">
+        <div style="font-size:11px;color:var(--c-textlt);margin-bottom:10px">email recommended for password recovery</div>
+      </div>
       <input type="password" class="mini-input" id="auth-password" placeholder="password" autocomplete="current-password" style="margin-bottom:4px">
       <button class="auth-submit-btn" id="auth-submit-btn" onclick="handleAuthSubmit()">log in</button>
+      <div class="auth-switch" id="auth-forgot-pw" onclick="openForgotPassword()">forgot password?</div>
       <div class="auth-switch" id="auth-switch">
         no account? <a onclick="toggleAuthMode()">sign up</a>
       </div>
       <div class="auth-skip" onclick="continueOffline()">continue without an account</div>
+    </div>
+
+    <div id="auth-forgot-state" style="display:none">
+      <div class="auth-title">reset password</div>
+      <div class="auth-subtitle">enter your username and we'll email you a reset link, if you have an email on file</div>
+      <div class="auth-error" id="forgot-error"></div>
+      <input type="text" class="mini-input" id="forgot-username" placeholder="username" autocomplete="username">
+      <button class="auth-submit-btn" onclick="handleForgotPassword()">send reset link</button>
+      <div class="auth-switch"><a onclick="closeForgotPassword()">back to log in</a></div>
+    </div>
+
+    <div id="auth-recovery-state" style="display:none">
+      <div class="auth-title">set a new password</div>
+      <div class="auth-subtitle">you're resetting your password</div>
+      <div class="auth-error" id="recovery-error"></div>
+      <input type="password" class="mini-input" id="recovery-password" placeholder="new password" autocomplete="new-password">
+      <button class="auth-submit-btn" onclick="handleSetNewPassword()">save new password</button>
     </div>
   </div>
 </div>
@@ -598,10 +621,19 @@ body {
       <div id="account-signed-in" style="display:none">
         <div class="account-row">
           <div>
-            <div class="account-email" id="account-email-display"></div>
+            <div class="account-email" id="account-username-display"></div>
             <div class="account-status" id="account-sync-status">synced</div>
           </div>
           <button class="delete-btn" style="margin:0;padding:8px 16px" onclick="handleSignOut()">sign out</button>
+        </div>
+        <button class="bulk-fill-toggle" onclick="toggleEmailSection()" style="margin-top:10px">
+          <span class="bulk-fill-toggle-label">email</span>
+          <span class="bulk-fill-toggle-chevron" id="email-section-chevron">▼</span>
+        </button>
+        <div class="bulk-fill-body" id="email-section-body">
+          <div class="account-status" id="current-email-display" style="margin-bottom:8px"></div>
+          <input type="email" class="mini-input" id="new-email-input" placeholder="new email address">
+          <button class="account-signin-btn" style="width:100%" onclick="handleChangeEmail()">update email</button>
         </div>
       </div>
       <div id="account-signed-out">
@@ -611,6 +643,7 @@ body {
         <button class="account-signin-btn" style="width:100%;margin-top:8px" onclick="openAuthOverlay()">log in / sign up</button>
       </div>
     </div>
+
     <div class="settings-section">
       <div class="settings-title"><img src="icons/icon-calendar.png" alt="">start date</div>
       <div class="start-date-row">
@@ -784,7 +817,7 @@ const STORAGE_KEY = 'locklog_v8';
 //  SUPABASE CONFIG — fill these in from your project's Settings > API page
 // ══════════════════════════════════════
 const SUPABASE_URL = 'https://cbyihcgwajgubipeeeqh.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNieWloY2d3YWpndWJpcGVlZXFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2ODUxNDksImV4cCI6MjEwMzI2MTE0OX0.XlGbfgRtSAnYQrOR1q4T2x19NGjUKZxPu39d91vlRCo';
+const SUPABASE_ANON_KEY = 'YOUR-ANON-PUBLIC-KEY-HERE';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const TODAY_STR = fmtDate(TODAY);
@@ -1078,22 +1111,35 @@ function save(){ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}ca
 //  AUTH
 // ══════════════════════════════════════
 let currentUser = null;
+let currentProfile = null;
 let authMode = 'signin'; // 'signin' | 'signup'
 const SKIP_AUTH_KEY = 'puplock_skip_auth';
+
+const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
+function synthesizeEmail(username){ return `${username.toLowerCase()}.${Date.now().toString(36)}@puplock.invalid`; }
+function isSyntheticEmail(email){ return !!email && email.endsWith('@puplock.invalid'); }
 
 function toggleAuthMode(){
   authMode = authMode==='signin' ? 'signup' : 'signin';
   document.getElementById('auth-submit-btn').textContent = authMode==='signin' ? 'log in' : 'sign up';
   document.getElementById('auth-subtitle').textContent = authMode==='signin' ? 'log in to sync across devices' : 'create an account to sync across devices';
+  document.getElementById('auth-username').placeholder = authMode==='signin' ? 'username or email' : 'username';
+  document.getElementById('auth-email-field-wrap').style.display = authMode==='signup' ? 'block' : 'none';
+  document.getElementById('auth-forgot-pw').style.display = authMode==='signin' ? 'block' : 'none';
   document.getElementById('auth-switch').innerHTML = authMode==='signin'
     ? 'no account? <a onclick="toggleAuthMode()">sign up</a>'
     : 'already have an account? <a onclick="toggleAuthMode()">log in</a>';
   document.getElementById('auth-error').textContent='';
 }
 
+function showAuthState(name){
+  ['auth-form-state','auth-forgot-state','auth-recovery-state'].forEach(id=>{
+    document.getElementById(id).style.display = id===name ? 'block' : 'none';
+  });
+}
 function openAuthOverlay(){
   document.getElementById('auth-loading-state').style.display='none';
-  document.getElementById('auth-form-state').style.display='block';
+  showAuthState('auth-form-state');
   document.getElementById('auth-overlay').classList.remove('hidden');
 }
 function closeAuthOverlay(){ document.getElementById('auth-overlay').classList.add('hidden'); }
@@ -1102,21 +1148,90 @@ function continueOffline(){
   closeAuthOverlay();
 }
 
+function openForgotPassword(){
+  document.getElementById('forgot-username').value='';
+  document.getElementById('forgot-error').textContent='';
+  showAuthState('auth-forgot-state');
+}
+function closeForgotPassword(){ showAuthState('auth-form-state'); }
+
+async function handleForgotPassword(){
+  const username=document.getElementById('forgot-username').value.trim();
+  const errEl=document.getElementById('forgot-error');
+  errEl.textContent='';
+  if(!username){ errEl.textContent='enter your username'; return; }
+  try{
+    const {data:loginEmail, error} = await sb.rpc('get_login_email_for_username',{lookup_username:username});
+    if(error) throw error;
+    if(!loginEmail){ errEl.textContent='no account found with that username'; return; }
+    if(isSyntheticEmail(loginEmail)){
+      errEl.textContent="this account doesn't have an email on file, so we can't send a reset link. sorry!";
+      return;
+    }
+    const {error:resetErr} = await sb.auth.resetPasswordForEmail(loginEmail, {redirectTo: window.location.href.split('#')[0]});
+    if(resetErr) throw resetErr;
+    errEl.style.color='var(--c-text)';
+    errEl.textContent='reset link sent! check your email.';
+  } catch(err){
+    errEl.textContent = err.message || 'something went wrong';
+  }
+}
+
+async function handleSetNewPassword(){
+  const pw=document.getElementById('recovery-password').value;
+  const errEl=document.getElementById('recovery-error');
+  errEl.textContent='';
+  if(!pw||pw.length<6){ errEl.textContent='password must be at least 6 characters'; return; }
+  try{
+    const {error} = await sb.auth.updateUser({password:pw});
+    if(error) throw error;
+    showToast('password updated!');
+    closeAuthOverlay();
+  } catch(err){
+    errEl.textContent = err.message || 'something went wrong';
+  }
+}
+
 async function handleAuthSubmit(){
+  const username=document.getElementById('auth-username').value.trim();
   const email=document.getElementById('auth-email').value.trim();
   const password=document.getElementById('auth-password').value;
   const errEl=document.getElementById('auth-error');
   const btn=document.getElementById('auth-submit-btn');
   errEl.textContent='';
-  if(!email||!password){ errEl.textContent='enter an email and password'; return; }
+  if(!username||!password){ errEl.textContent='enter a username and password'; return; }
+  if(authMode==='signup' && !USERNAME_RE.test(username)){
+    errEl.textContent='username: 3-20 characters, letters/numbers/underscore only'; return;
+  }
   btn.disabled=true; btn.textContent='...';
   try{
     if(authMode==='signin'){
-      const {error} = await sb.auth.signInWithPassword({email,password});
-      if(error) throw error;
+      let loginEmail;
+      if(username.includes('@')){
+        // looks like an email — use it directly, no username lookup needed
+        loginEmail = username;
+      } else {
+        const {data, error:lookupErr} = await sb.rpc('get_login_email_for_username',{lookup_username:username});
+        if(lookupErr) throw lookupErr;
+        if(!data){ throw new Error('invalid username or password'); }
+        loginEmail = data;
+      }
+      const {error} = await sb.auth.signInWithPassword({email:loginEmail,password});
+      if(error) throw new Error('invalid username or password');
     } else {
-      const {error} = await sb.auth.signUp({email,password});
+      const loginEmail = email || synthesizeEmail(username);
+      const {data, error} = await sb.auth.signUp({email:loginEmail,password});
       if(error) throw error;
+      // fill in username + login_email on the auto-created profile row
+      if(data.user){
+        const {error:profErr} = await sb.from('profiles').update({
+          username, login_email: loginEmail,
+        }).eq('id', data.user.id);
+        if(profErr){
+          if(profErr.code==='23505') throw new Error('that username is already taken');
+          throw profErr;
+        }
+      }
     }
     // onAuthStateChange handles the rest (closing overlay, loading cloud data)
   } catch(err){
@@ -1135,8 +1250,41 @@ function updateAccountUI(){
   const signedIn = !!currentUser;
   document.getElementById('account-signed-in').style.display = signedIn ? 'block' : 'none';
   document.getElementById('account-signed-out').style.display = signedIn ? 'none' : 'block';
-  if(signedIn) document.getElementById('account-email-display').textContent = currentUser.email;
+  if(signedIn){
+    document.getElementById('account-username-display').textContent = currentProfile?.username || currentUser.email;
+    renderEmailSection();
+  }
 }
+
+function toggleEmailSection(){
+  document.getElementById('email-section-body').classList.toggle('open');
+  const chev=document.getElementById('email-section-chevron');
+  chev.textContent = document.getElementById('email-section-body').classList.contains('open') ? '▲' : '▼';
+}
+
+function renderEmailSection(){
+  const el=document.getElementById('current-email-display'); if(!el) return;
+  const email = currentUser?.email;
+  if(!email || isSyntheticEmail(email)){
+    el.textContent='no email on file — add one below for password recovery';
+  } else {
+    el.textContent=`current: ${email}`;
+  }
+}
+
+async function handleChangeEmail(){
+  const newEmail=document.getElementById('new-email-input').value.trim();
+  if(!newEmail){ showToast('enter an email address first'); return; }
+  try{
+    const {error} = await sb.auth.updateUser({email:newEmail});
+    if(error) throw error;
+    showToast('check your new email to confirm the change');
+    document.getElementById('new-email-input').value='';
+  } catch(err){
+    showToast(err.message || 'failed to update email');
+  }
+}
+
 
 // runs once on load: checks session, shows overlay or loads cloud data
 async function initAuth(){
@@ -1153,15 +1301,29 @@ async function initAuth(){
   updateAccountUI();
 
   sb.auth.onAuthStateChange(async (event, session) => {
-    const wasSignedOut = !currentUser;
     currentUser = session ? session.user : null;
+    if(event==='PASSWORD_RECOVERY'){
+      // supabase redirected here from a reset-password email link
+      document.getElementById('auth-loading-state').style.display='none';
+      document.getElementById('auth-overlay').classList.remove('hidden');
+      showAuthState('auth-recovery-state');
+      return;
+    }
     updateAccountUI();
     if(event==='SIGNED_IN' && currentUser){
       await loadCloudData();
       closeAuthOverlay();
       refreshAllViews();
     } else if(event==='SIGNED_OUT'){
+      currentProfile=null;
       showToast('signed out');
+    } else if(event==='USER_UPDATED' && currentUser){
+      // email change confirmed — keep profiles.login_email in sync
+      if(currentProfile){
+        await sb.from('profiles').update({login_email: currentUser.email}).eq('id', currentUser.id);
+        currentProfile.login_email = currentUser.email;
+        renderEmailSection();
+      }
     }
   });
 }
@@ -1226,6 +1388,7 @@ async function loadCloudData(){
     sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle(),
     sb.from('days').select('*').eq('user_id',currentUser.id),
   ]);
+  currentProfile = profile || null;
 
   const hasCloudData = (days && days.length>0) || (profile && profile.settings && Object.keys(profile.settings).length>0);
   const hasLocalData = Object.keys(state.days||{}).length>0;
