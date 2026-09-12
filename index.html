@@ -626,6 +626,11 @@ body {
           </div>
           <button class="delete-btn" style="margin:0;padding:8px 16px" onclick="handleSignOut()">sign out</button>
         </div>
+        <div id="set-username-wrap" style="display:none;margin-top:10px">
+          <div class="account-status" style="margin-bottom:6px">choose a username to log in with next time</div>
+          <input type="text" class="mini-input" id="set-username-input" placeholder="username" maxlength="20">
+          <button class="account-signin-btn" style="width:100%" onclick="handleSetUsername()">set username</button>
+        </div>
         <button class="bulk-fill-toggle" onclick="toggleEmailSection()" style="margin-top:10px">
           <span class="bulk-fill-toggle-label">email</span>
           <span class="bulk-fill-toggle-chevron" id="email-section-chevron">▼</span>
@@ -1251,8 +1256,32 @@ function updateAccountUI(){
   document.getElementById('account-signed-in').style.display = signedIn ? 'block' : 'none';
   document.getElementById('account-signed-out').style.display = signedIn ? 'none' : 'block';
   if(signedIn){
-    document.getElementById('account-username-display').textContent = currentProfile?.username || currentUser.email;
+    const hasUsername = !!currentProfile?.username;
+    document.getElementById('account-username-display').textContent = hasUsername ? currentProfile.username : (isSyntheticEmail(currentUser.email) ? 'no username set' : currentUser.email);
+    document.getElementById('set-username-wrap').style.display = hasUsername ? 'none' : 'block';
     renderEmailSection();
+  }
+}
+
+async function handleSetUsername(){
+  const input=document.getElementById('set-username-input');
+  const username=input.value.trim();
+  if(!USERNAME_RE.test(username)){ showToast('username: 3-20 characters, letters/numbers/underscore only'); return; }
+  try{
+    const updates = {username};
+    // if this account was created with a synthetic email, keep login_email consistent too
+    if(currentProfile && !currentProfile.login_email) updates.login_email = currentUser.email;
+    const {error} = await sb.from('profiles').update(updates).eq('id', currentUser.id);
+    if(error){
+      if(error.code==='23505'){ showToast('that username is already taken'); return; }
+      throw error;
+    }
+    currentProfile = {...currentProfile, ...updates};
+    input.value='';
+    updateAccountUI();
+    showToast('username set!');
+  } catch(err){
+    showToast(err.message || 'failed to set username');
   }
 }
 
