@@ -784,7 +784,7 @@ const STORAGE_KEY = 'locklog_v8';
 //  SUPABASE CONFIG — fill these in from your project's Settings > API page
 // ══════════════════════════════════════
 const SUPABASE_URL = 'https://cbyihcgwajgubipeeeqh.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNieWloY2d3YWpndWJpcGVlZXFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2ODUxNDksImV4cCI6MjEwMzI2MTE0OX0.XlGbfgRtSAnYQrOR1q4T2x19NGjUKZxPu39d91vlRCo';
+const SUPABASE_ANON_KEY = 'YOUR-ANON-PUBLIC-KEY-HERE';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const TODAY_STR = fmtDate(TODAY);
@@ -1236,6 +1236,17 @@ async function loadCloudData(){
       await importLocalDataToCloud();
       return; // importLocalDataToCloud re-loads cloud data at the end
     }
+    // declined the import — keep local data exactly as-is, don't touch state.days at all.
+    // still merge any (empty) profile settings safely, then bail out before the days rebuild below.
+    if(profile){
+      state.theme = profile.theme || state.theme;
+      if(profile.show_stickers!==null && profile.show_stickers!==undefined) state.showStickers = profile.show_stickers;
+      if(profile.start_date) state.startDate = profile.start_date;
+      if(profile.settings) state = {...state, ...profile.settings};
+    }
+    try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }catch(e){}
+    refreshAllViews();
+    return;
   }
 
   // merge cloud profile into local state
@@ -1245,10 +1256,13 @@ async function loadCloudData(){
     if(profile.start_date) state.startDate = profile.start_date;
     if(profile.settings) state = {...state, ...profile.settings};
   }
-  // rebuild days from cloud rows (cloud is now source of truth once logged in)
-  const daysObj={};
-  (days||[]).forEach(r=>{ daysObj[r.date]={orgasm:r.orgasm,cage:r.cage,stickers:r.stickers||[],notes:r.notes||'',mood:r.mood||null}; });
-  state.days = daysObj;
+  // rebuild days from cloud rows — only trust this as the full picture when the cloud
+  // actually has data. Never replace a populated local days object with an empty result.
+  if(hasCloudData){
+    const daysObj={};
+    (days||[]).forEach(r=>{ daysObj[r.date]={orgasm:r.orgasm,cage:r.cage,stickers:r.stickers||[],notes:r.notes||'',mood:r.mood||null}; });
+    state.days = daysObj;
+  }
 
   STAT_DEFS.forEach(sd=>{ if(state.statEnabled[sd.id]===undefined) state.statEnabled[sd.id]=true; });
   if(!state.cages||!state.cages.length) state.cages=JSON.parse(JSON.stringify(DEFAULT_CAGES));
@@ -2200,6 +2214,18 @@ function importData(input){
         renderCageSettings(); renderPaletteGrid(); renderDensityGrid(); renderStatSettingsList(); renderIdentityTags(); updateBulkFillVisibility();
       }
       showToast('data imported successfully!');
+      if(currentUser){
+        const rows = Object.entries(state.days||{}).map(([date,day])=>({
+          user_id: currentUser.id, date, orgasm: day.orgasm||'none', cage: day.cage||'none',
+          stickers: day.stickers||[], notes: day.notes||'', mood: day.mood||null,
+        }));
+        if(rows.length){
+          sb.from('days').upsert(rows, {onConflict:'user_id,date'}).then(({error})=>{
+            if(error) showToast('imported locally, but cloud sync failed — try again from settings');
+            else showToast('synced imported data to your account!');
+          });
+        }
+      }
     } catch(err){
       showToast('import failed — invalid file');
     }
