@@ -784,7 +784,7 @@ const STORAGE_KEY = 'locklog_v8';
 //  SUPABASE CONFIG — fill these in from your project's Settings > API page
 // ══════════════════════════════════════
 const SUPABASE_URL = 'https://cbyihcgwajgubipeeeqh.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR-ANON-PUBLIC-KEY-HERE';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNieWloY2d3YWpndWJpcGVlZXFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2ODUxNDksImV4cCI6MjEwMzI2MTE0OX0.XlGbfgRtSAnYQrOR1q4T2x19NGjUKZxPu39d91vlRCo';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
 const TODAY_STR = fmtDate(TODAY);
