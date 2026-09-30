@@ -679,28 +679,31 @@ body {
       </div>
     </div>
     <div class="settings-section">
-      <div class="settings-title">🐾 are you a...</div>
+      <div class="settings-title"><img src="icons/icon-paw-emoji.png" alt="">are you a...</div>
       <div class="identity-tag-group" id="identity-tag-group"></div>
       <div class="identity-custom-wrap" id="identity-custom-wrap"></div>
       <button class="add-identity-btn" id="add-identity-btn" onclick="addCustomIdentityTag()">＋ add your own</button>
+      <div class="toggle-row" style="margin-top:12px">
+        <div class="toggle-label">do you have an owner?</div>
+        <div class="identity-tag-group" style="margin-bottom:0" id="owner-toggle-group">
+          <button class="pill" id="owner-yes-btn" onclick="setHasOwner(true)">yes</button>
+          <button class="pill" id="owner-no-btn" onclick="setHasOwner(false)">no</button>
+        </div>
+      </div>
     </div>
     <div class="settings-section">
-      <div class="settings-title">👁 display</div>
+      <div class="settings-title"><img src="icons/icon-display.png" alt="">display</div>
       <div class="toggle-row">
         <div class="toggle-label">show stickers on tiles</div>
         <button class="toggle on" id="sticker-toggle" onclick="toggleStickers()"></button>
       </div>
     </div>
     <div class="settings-section">
-      <div class="settings-title">📊 stats</div>
+      <div class="settings-title"><img src="icons/icon-stats.png" alt="">stats</div>
       <div id="stat-settings-list"></div>
     </div>
     <div class="settings-section">
-      <div class="settings-title">📐 layout</div>
-      <div class="palette-grid" id="density-grid"></div>
-    </div>
-    <div class="settings-section">
-      <div class="settings-title">🎨 color palette</div>
+      <div class="settings-title"><img src="icons/icon-theme.png" alt="">theme</div>
       <div class="palette-grid" id="palette-grid"></div>
       <div id="custom-themes-grid" style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
       <button class="add-theme-btn" id="add-theme-btn" onclick="addCustomTheme()" style="margin-top:8px;width:100%">＋ new theme</button>
@@ -711,9 +714,9 @@ body {
       <button class="add-cage-btn" id="add-cage-btn" onclick="addCage()">＋ add a cage</button>
     </div>
     <div class="settings-section">
-      <div class="settings-title">🗑 data</div>
-      <button class="delete-btn" style="margin-bottom:8px" onclick="exportData()">📤 export data backup</button>
-      <button class="delete-btn" style="margin-bottom:8px" onclick="document.getElementById('import-file-input').click()">📥 import data backup</button>
+      <div class="settings-title"><img src="icons/icon-data.png" alt="">data</div>
+      <button class="delete-btn" style="margin-bottom:8px" onclick="exportData()"><img src="icons/icon-download.png" alt="" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px">export data backup</button>
+      <button class="delete-btn" style="margin-bottom:8px" onclick="document.getElementById('import-file-input').click()"><img src="icons/icon-download.png" alt="" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px;transform:rotate(180deg)">import data backup</button>
       <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importData(this)">
       <button class="delete-btn" onclick="clearAllData()">clear all data</button>
     </div>
@@ -882,6 +885,7 @@ const STAT_DEFS = [
   {id:'ruined',        iconImg:'icons/icon-ruined.png',         label:'ruined',                fmt:v=>v},
   {id:'edges',         iconImg:'icons/icon-flame.png',          label:'edges',                 fmt:v=>v},
   {id:'forbidden',     iconImg:'icons/icon-forbidden.png',      label:'forbidden',             fmt:v=>v},
+  {id:'wetDreams',     iconImg:'icons/icon-wet-dream.png',      label:'wet dreams',            fmt:v=>v},
   {id:'lockStreak',    iconImg:'icons/icon-stopwatch.png',      label:'current lock streak',   fmt:v=>v+'d'},
   {id:'longestLock',   iconImg:'icons/icon-trophy.png',         label:'longest lock streak',   fmt:v=>v+'d'},
   {id:'sinceOrgasm',   iconImg:'icons/icon-droplet-orgasm.png', label:'days since last orgasm',fmt:v=>v+'d'},
@@ -909,6 +913,7 @@ const DEFAULT_STICKERS = [
   {id:'misbehav',  icon:'icons/icon-spanking.png',     label:'misbehavior', enabled:true},
   {id:'punish',    icon:'icons/icon-paddle.png',       label:'punishment',  enabled:true},
   {id:'reward',    icon:'icons/icon-gift.png',         label:'reward',      enabled:true},
+  {id:'hygiene',   icon:'icons/icon-hygiene.png',      label:'hygiene unlock', enabled:true},
   {id:'bad-slp',   icon:null, emoji:'😴', label:'bad sleep',   enabled:false},
   {id:'discomfort',icon:null, emoji:'🩹', label:'discomfort',  enabled:false},
   {id:'key',       icon:null, emoji:'🔑', label:'key access',  enabled:false},
@@ -959,35 +964,42 @@ const MOOD_LABELS = {
   mindbroken:'mindbroken 🌀',
 };
 
+// keyed by minimum lock-streak day required to unlock — pooled cumulatively, see checkFeedback()
 const STREAK_MSGS = {
-  6:  [()=>`good ${getPetName()}!`, ()=>`such a well-behaved ${getPetName()}`, ()=>`owner would be pleased~`],
-  11: [()=>`such a patient ${getPetName()}!`, ()=>`keeping it locked like a good ${getPetName()}`, ()=>`discipline looks good on you`],
-  21: [()=>`owner must be very proud`, ()=>`that's real dedication, ${getPetName()}`, ()=>`so obedient~`],
-  31: [()=>`a whole month?! good ${getPetName()}`, ()=>`incredibly devoted ${getPetName()}`, ()=>`your owner is very lucky`],
-  55: [()=>`might as well get you fixed at this point~`, ()=>`practically neutered at this stage, ${getPetName()}`, ()=>`maybe it's time to just flush that key`, ()=>`honestly not sure ${getPetName()} ever needs to come out again`],
+  1:  [()=>`starting your journey <3`],
+  2:  [()=>`the beginning is the hardest part ~`, ()=>`starting hard, or hardly started?`, ()=>`good ${getPetName()}!`, ()=>`keep it up, ${getPetName()}.`],
+  6:  [()=>`such a well-behaved ${getPetName()}`, ()=>`owner would be pleased~`],
+  7:  [()=>`one week down, ${getPetName()}.`],
+  11: [()=>`such a patient ${getPetName()}!`, ()=>`keeping it locked like a good ${getPetName()}~`, ()=>`so obedient~`],
+  21: [()=>`owner must be very proud`, ()=>`be proud of yourself, ${getPetName()}`, ()=>`such a dedicated ${getPetName()}!`],
+  31: [()=>`a whole month?! good ${getPetName()}.`, ()=>`devoted ${getPetName()}.`, ()=>`your owner is very lucky`],
+  45: [()=>`might as well get you fixed at this point~`],
+  55: [()=>`practically neutered at this stage, ${getPetName()}`, ()=>`maybe it's time to just flush that key`, ()=>`honestly not sure ${getPetName()} ever needs to come out again`],
+  70: [()=>`forget about it, ${getPetName()}.`],
 };
 const ORGASM_MSGS = {
-  orgasm:    [()=>`lucky ${getPetName()}!`, ()=>`you earned that one`, ()=>`what a good ${getPetName()}, getting a treat~`, ()=>`rewarded and grateful, as it should be`],
-  ruined:    [()=>`so close, ${getPetName()}~`, ()=>`almost... but not quite`, ()=>`that's what you get~`, ()=>`owner giveth and owner taketh away`],
+  orgasm:    [()=>`lucky ${getPetName()}!`, ()=>`you earned that one`, ()=>`what a good ${getPetName()}, getting a treat~`, ()=>`rewarded and grateful, as you should be`],
+  ruined:    [()=>`so close, ${getPetName()}~`, ()=>`almost... but not quite`, ()=>`that's what you get~`, ()=>`best you're gonna get.`],
   forbidden: [()=>`uh oh...`, ()=>`that's going in the report`, ()=>`someone's in trouble~`, ()=>`oops. owner will hear about this`],
 };
 const MOOD_MSGS = {
   leaking:    [()=>`making a mess, ${getPetName()}~`, ()=>`dripping already? good ${getPetName()}`],
-  desperate:  [()=>`that's exactly where you belong`, ()=>`desperation looks so good on you`],
-  mindbroken: [()=>`there ${getPetName()} goes~`, ()=>`completely gone. perfect.`, ()=>`owner broke you just right`],
+  desperate:  [()=>`that's exactly where you belong`, ()=>`such a desperate little ${getPetName()}.`],
+  mindbroken: [()=>`there you go, ${getPetName()}~`, ()=>`completely gone. perfect.`, ()=>`owner broke you just right`],
 };
 const STICKER_MSGS = {
-  'paw':      [()=>`good ${getPetName()}, serving owner well`, ()=>`that's what paws are for~`],
-  'vibrator': [()=>`buzzy day~`, ()=>`the wand has spoken`],
-  'cage-chg': [()=>`fresh cage, fresh start`, ()=>`how does the new one feel, ${getPetName()}?`],
-  'downsize': [()=>`tighter and tighter~`, ()=>`owner means business`],
-  'misbehav': [()=>`noted.`, ()=>`${getPetName()}s who misbehave don't get treats`],
-  'punish':   [()=>`lessons learned the hard way`, ()=>`corrections build good ${getPetName()}s`],
-  'reward':   [()=>`treats for good ${getPetName()}s`, ()=>`you must have been very good~`],
-  'discomfort':[()=>`take care of yourself, ${getPetName()}`, ()=>`comfort matters, always check in`],
-  'bad-slp':  [()=>`rest up, ${getPetName()}`, ()=>`tired ${getPetName()}s need extra care`],
-  'handsfree':[()=>`no hands needed when you're that good`, ()=>`impressive, ${getPetName()}~`],
-  'edge':     [()=>`so close...`, ()=>`right on the edge~`],
+  'paw':      [()=>`cute ${getPetName()}.`, ()=>`someone got lucky`],
+  'vibrator': [()=>`bzz bzz bzz`, ()=>`lucky ${getPetName()}.`],
+  'cage-chg': [()=>`what a cute new cage!`, ()=>`how does the new one feel, ${getPetName()}?`],
+  'downsize': [()=>`it can *always* be smaller`, ()=>`owner knows best.`],
+  'misbehav': [()=>`noted.`, ()=>`${getPetNamePlural()} who misbehave don't get treats`],
+  'punish':   [()=>`owner knows what's best for you.`, ()=>`Aww, did ${getPetName()} need to be disciplined?`, ()=>`punishment is good for you, ${getPetName()}.`, ()=>`corrections build good ${getPetNamePlural()}`],
+  'reward':   [()=>`lucky ${getPetName()}...`, ()=>`you must have been very good~`],
+  'discomfort':[()=>`take care of yourself, ${getPetName()}`, ()=>`remember to use lotion.`],
+  'bad-slp':  [()=>`rest up, ${getPetName()}`, ()=>`tired ${getPetNamePlural()} need extra care`],
+  'handsfree':[()=>`guess you never need to touch that cage again.`, ()=>`impressive, ${getPetName()}`],
+  'edge':     [()=>`so close...`, ()=>`better learn to enjoy it.`],
+  'wet-dream':[()=>`aww, so cute.`, ()=>`I think that counts, don't you?`],
 };
 const MOOD_PROMPTS = [
   ()=>`how ya feeling today, ${getPetName()}?`,
@@ -1008,6 +1020,7 @@ function getDefaultState(){
     theme: 'soft-puppy',
     density: 'default',
     startDate: null,
+    hasOwner: true,
     identityTags: ['pup'],
     customIdentityTags: [],
     customStickers: [],
@@ -1041,6 +1054,10 @@ function stickerById(id){ return [...DEFAULT_STICKERS,...state.customStickers].f
 function getPetName(){
   const all=[...state.identityTags,...(state.customIdentityTags||[]).map(t=>t.value).filter(Boolean)];
   return all.length ? pick(all) : 'pup';
+}
+function getPetNamePlural(){
+  const name=getPetName();
+  return name.toLowerCase()==='puppy' ? name.slice(0,-1)+'ies' : name+'s';
 }
 function getPrevDate(ds){ const d=parseDate(ds); d.setDate(d.getDate()-1); return fmtDate(d); }
 function cageById(id){ return state.cages.find(c=>c.id===id); }
@@ -1392,6 +1409,7 @@ const syncProfileToCloud = debounce(async ()=>{
     theme: state.theme,
     show_stickers: state.showStickers,
     start_date: state.startDate,
+    has_owner: state.hasOwner!==false,
     settings,
   });
   if(statusEl) statusEl.textContent = error ? 'sync failed — will retry' : 'synced';
@@ -1441,6 +1459,7 @@ async function loadCloudData(){
       state.theme = profile.theme || state.theme;
       if(profile.show_stickers!==null && profile.show_stickers!==undefined) state.showStickers = profile.show_stickers;
       if(profile.start_date) state.startDate = profile.start_date;
+      if(profile.has_owner!==null && profile.has_owner!==undefined) state.hasOwner = profile.has_owner;
       if(profile.settings) state = {...state, ...profile.settings};
     }
     try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }catch(e){}
@@ -1453,6 +1472,7 @@ async function loadCloudData(){
     state.theme = profile.theme || state.theme;
     if(profile.show_stickers!==null && profile.show_stickers!==undefined) state.showStickers = profile.show_stickers;
     if(profile.start_date) state.startDate = profile.start_date;
+    if(profile.has_owner!==null && profile.has_owner!==undefined) state.hasOwner = profile.has_owner;
     if(profile.settings) state = {...state, ...profile.settings};
   }
   // rebuild days from cloud rows — only trust this as the full picture when the cloud
@@ -1466,6 +1486,7 @@ async function loadCloudData(){
   STAT_DEFS.forEach(sd=>{ if(state.statEnabled[sd.id]===undefined) state.statEnabled[sd.id]=true; });
   if(!state.cages||!state.cages.length) state.cages=JSON.parse(JSON.stringify(DEFAULT_CAGES));
   if(!state.customThemes) state.customThemes=[];
+  if(state.hasOwner===undefined) state.hasOwner=true;
 
   try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }catch(e){}
   refreshAllViews();
@@ -1479,7 +1500,7 @@ async function importLocalDataToCloud(){
     customStickers: state.customStickers, statEnabled: state.statEnabled, pinnedStats: state.pinnedStats,
     customThemes: state.customThemes, activeCustomThemeId: state.activeCustomThemeId, cages: state.cages,
   };
-  await sb.from('profiles').upsert({ id: currentUser.id, theme: state.theme, show_stickers: state.showStickers, start_date: state.startDate, settings });
+  await sb.from('profiles').upsert({ id: currentUser.id, theme: state.theme, show_stickers: state.showStickers, start_date: state.startDate, has_owner: state.hasOwner!==false, settings });
   // bulk push all local days
   const rows = Object.entries(state.days||{}).map(([date,day])=>({
     user_id: currentUser.id, date, orgasm: day.orgasm||'none', cage: day.cage||'none',
@@ -1501,7 +1522,7 @@ function refreshAllViews(){
   renderCurrentCalView(); renderStatTiles(); renderHeaderPins();
   const sTog=document.getElementById('sticker-toggle'); if(sTog) sTog.classList.toggle('on',state.showStickers);
   if(document.getElementById('view-settings').classList.contains('active')){
-    renderCageSettings(); renderPaletteGrid(); renderDensityGrid(); renderStatSettingsList(); renderIdentityTags(); updateBulkFillVisibility();
+    renderCageSettings(); renderPaletteGrid(); renderStatSettingsList(); renderIdentityTags(); renderOwnerToggle(); updateBulkFillVisibility();
   }
 }
 
@@ -1518,7 +1539,6 @@ function init(){
   renderCurrentCalView();
   renderStatTiles();
   renderHeaderPins();
-  renderDensityGrid();
   renderIdentityTags();
   updateBulkFillVisibility();
   // restore tab state
@@ -1552,16 +1572,17 @@ function computeStats(){
   let tracked=0;
   if(startDt){ tracked=Math.max(0,Math.floor((TODAY-startDt)/86400000)+1); }
 
-  let locked=0,unlocked=0,orgasms=0,ruined=0,edges=0,forbidden=0;
+  let locked=0,unlocked=0,orgasms=0,ruined=0,edges=0,forbidden=0,wetDreams=0;
   entries.forEach(([,v])=>{
     if(v.cage&&v.cage!=='none') locked++; else unlocked++;
     if(v.orgasm==='orgasm')    orgasms++;
     if(v.orgasm==='ruined')    ruined++;
     if(v.orgasm==='forbidden') forbidden++;
     if(v.stickers&&v.stickers.includes('edge')) edges++;
+    if(v.stickers&&v.stickers.includes('wet-dream')) wetDreams++;
   });
   // comprehensive orgasm total
-  const orgasmsTotal=orgasms+ruined+forbidden;
+  const orgasmsTotal=orgasms+ruined+forbidden+wetDreams;
 
   let lockStreak=0;
   for(let i=0;i<730;i++){
@@ -1592,7 +1613,7 @@ function computeStats(){
   });
   longestDenial=Math.max(longestDenial,curDenial);
 
-  return {tracked,locked,unlocked,orgasms:orgasmsTotal,ruined,edges,forbidden,lockStreak,longestLock,sinceOrgasm,longestDenial};
+  return {tracked,locked,unlocked,orgasms:orgasmsTotal,ruined,edges,forbidden,wetDreams,lockStreak,longestLock,sinceOrgasm,longestDenial};
 }
 
 // ══════════════════════════════════════
@@ -1654,10 +1675,22 @@ function toggleStatEnabled(id){
 function checkFeedback(streak){
   if(streak===lastFeedbackStreak) return;
   lastFeedbackStreak=streak;
-  const thresholds=[55,31,21,11,6];
-  for(const t of thresholds){ if(streak>=t){showToast(pick(STREAK_MSGS[t])());return;} }
+  const pool=[];
+  for(const t of Object.keys(STREAK_MSGS).map(Number)){ if(streak>=t) pool.push(...STREAK_MSGS[t]); }
+  if(pool.length) pickAndShowToast(pool);
 }
 let toastQueue=[],toastBusy=false;
+// picks a message from arr and shows it, respecting the "do you have an owner?" setting:
+// re-picks once if the chosen message mentions "owner", and skips the toast entirely
+// if it still does after the re-pick.
+function pickAndShowToast(arr){
+  let msg = pick(arr)();
+  if(state.hasOwner===false && msg.toLowerCase().includes('owner')){
+    msg = pick(arr)();
+    if(msg.toLowerCase().includes('owner')) return;
+  }
+  showToast(msg);
+}
 function showToast(msg){ toastQueue.push(msg); if(!toastBusy) processToast(); }
 function processToast(){
   if(!toastQueue.length){toastBusy=false;return;}
@@ -1668,7 +1701,7 @@ function processToast(){
 }
 function maybeStickerToast(stickers){
   if(Math.random()>0.25) return;
-  for(const sid of stickers){ if(STICKER_MSGS[sid]){showToast(pick(STICKER_MSGS[sid])());return;} }
+  for(const sid of stickers){ if(STICKER_MSGS[sid]){pickAndShowToast(STICKER_MSGS[sid]);return;} }
 }
 
 // ══════════════════════════════════════
@@ -1973,12 +2006,29 @@ function renderStickerPicker(){
     const btn=document.createElement('button');
     btn.className='sticker-pick'+(selectedStickers.has(s.id)?' selected':''); btn.dataset.id=s.id;
     btn.innerHTML=`${stickerIconHtml(s)}<span class="sticker-label">${s.label}</span>`;
-    btn.onclick=()=>{ if(selectedStickers.has(s.id)) selectedStickers.delete(s.id); else selectedStickers.add(s.id); btn.classList.toggle('selected',selectedStickers.has(s.id)); };
+    btn.onclick=()=>{
+      if(selectedStickers.has(s.id)) selectedStickers.delete(s.id); else selectedStickers.add(s.id);
+      btn.classList.toggle('selected',selectedStickers.has(s.id));
+      if(s.id==='wet-dream' && selectedStickers.has('wet-dream')){
+        selectedOrgasm='forbidden';
+        document.querySelectorAll('#orgasm-pills .pill').forEach(p=>{
+          p.className='pill'; if(p.dataset.val==='forbidden') p.classList.add(`sel-${p.dataset.col}`);
+        });
+      }
+    };
     wrap.appendChild(btn);
   });
   const add=document.createElement('button'); add.className='sticker-add-btn'; add.innerHTML='＋'; add.onclick=openAddSticker; wrap.appendChild(add);
 }
-function selectOrgasm(btn){ document.querySelectorAll('#orgasm-pills .pill').forEach(p=>p.className='pill'); selectedOrgasm=btn.dataset.val; btn.classList.add(`sel-${btn.dataset.col}`); }
+function selectOrgasm(btn){
+  document.querySelectorAll('#orgasm-pills .pill').forEach(p=>p.className='pill');
+  selectedOrgasm=btn.dataset.val; btn.classList.add(`sel-${btn.dataset.col}`);
+  if(selectedOrgasm==='forbidden' && !selectedStickers.has('misbehav')){
+    selectedStickers.add('misbehav');
+    const stickerBtn=document.querySelector(`.sticker-pick[data-id="misbehav"]`);
+    if(stickerBtn) stickerBtn.classList.add('selected');
+  }
+}
 function selectMood(btn){
   if(selectedMood===btn.dataset.val){selectedMood=null;btn.classList.remove('selected');return;}
   document.querySelectorAll('.mood-pill').forEach(p=>p.classList.remove('selected'));
@@ -1991,8 +2041,8 @@ function saveDay(){
   state.days[editingDate]={orgasm:selectedOrgasm,cage:selectedCage,stickers:[...selectedStickers],notes:document.getElementById('day-notes').value,mood:selectedMood};
   save(); renderCurrentCalView(); renderStatTiles();
   syncDayToCloud(editingDate, state.days[editingDate]);
-  if(ORGASM_MSGS[selectedOrgasm]) showToast(pick(ORGASM_MSGS[selectedOrgasm])());
-  if(selectedMood&&MOOD_MSGS[selectedMood]) showToast(pick(MOOD_MSGS[selectedMood])());
+  if(ORGASM_MSGS[selectedOrgasm]) pickAndShowToast(ORGASM_MSGS[selectedOrgasm]);
+  if(selectedMood&&MOOD_MSGS[selectedMood]) pickAndShowToast(MOOD_MSGS[selectedMood]);
   if(selectedStickers.size>0) maybeStickerToast([...selectedStickers]);
   closeModal();
 }
@@ -2100,20 +2150,6 @@ function runBulkFill(){
   // auto collapse
   document.getElementById('bulk-fill-body').classList.remove('open');
   document.getElementById('bulk-fill-chevron').classList.remove('open');
-}
-
-const DENSITY_OPTIONS=[{id:'default',name:'default',desc:'bigger, fuller'},{id:'compact',name:'compact',desc:'smaller, airy'}];
-function renderDensityGrid(){
-  const grid=document.getElementById('density-grid'); if(!grid) return;
-  grid.innerHTML='';
-  DENSITY_OPTIONS.forEach(d=>{
-    const btn=document.createElement('button');
-    btn.className='palette-btn'+(state.density===d.id?' active':'');
-    btn.style.background='var(--c-white)'; btn.style.color='var(--c-text)';
-    btn.innerHTML=`<div>${d.name}</div><div style="font-size:10px;font-weight:700;color:var(--c-textlt)">${d.desc}</div>`;
-    btn.onclick=()=>{ state.density=d.id; document.body.setAttribute('data-density',d.id); save(); renderDensityGrid(); renderCurrentCalView(); renderStatTiles(); };
-    grid.appendChild(btn);
-  });
 }
 
 // ── PALETTE / CUSTOM THEMES ──
@@ -2365,6 +2401,17 @@ function toggleStickers(){
   document.getElementById('sticker-toggle').classList.toggle('on',state.showStickers);
   save(); renderCurrentCalView();
 }
+function setHasOwner(val){
+  state.hasOwner=val;
+  renderOwnerToggle();
+  save();
+}
+function renderOwnerToggle(){
+  const yesBtn=document.getElementById('owner-yes-btn'), noBtn=document.getElementById('owner-no-btn');
+  if(!yesBtn||!noBtn) return;
+  yesBtn.classList.toggle('sel-def', state.hasOwner!==false);
+  noBtn.classList.toggle('sel-def', state.hasOwner===false);
+}
 async function clearAllData(){
   const msg = currentUser
     ? 'clear all data? this cannot be undone, and will also clear it from your account 🥺'
@@ -2383,7 +2430,7 @@ async function clearAllData(){
     };
     await Promise.all([
       sb.from('days').delete().eq('user_id', currentUser.id),
-      sb.from('profiles').update({theme:state.theme, show_stickers:state.showStickers, start_date:state.startDate, settings}).eq('id', currentUser.id),
+      sb.from('profiles').update({theme:state.theme, show_stickers:state.showStickers, start_date:state.startDate, has_owner:state.hasOwner!==false, settings}).eq('id', currentUser.id),
     ]);
     if(statusEl) statusEl.textContent='synced';
   }
@@ -2397,7 +2444,7 @@ function switchView(v){
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
   document.getElementById('nav-'+v).classList.add('active');
-  if(v==='settings'){ renderCageSettings(); renderPaletteGrid(); renderDensityGrid(); renderStatSettingsList(); renderIdentityTags(); updateBulkFillVisibility(); }
+  if(v==='settings'){ renderCageSettings(); renderPaletteGrid(); renderStatSettingsList(); renderIdentityTags(); renderOwnerToggle(); updateBulkFillVisibility(); }
 }
 function exportData(){
   const json=JSON.stringify(state, null, 2);
@@ -2429,7 +2476,7 @@ function importData(input){
       applyActiveCustomTheme();
       renderCurrentCalView(); renderStatTiles(); renderHeaderPins();
       if(document.getElementById('view-settings').classList.contains('active')){
-        renderCageSettings(); renderPaletteGrid(); renderDensityGrid(); renderStatSettingsList(); renderIdentityTags(); updateBulkFillVisibility();
+        renderCageSettings(); renderPaletteGrid(); renderStatSettingsList(); renderIdentityTags(); renderOwnerToggle(); updateBulkFillVisibility();
       }
       showToast('data imported successfully!');
       if(currentUser){
