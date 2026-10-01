@@ -418,6 +418,20 @@ body {
 .cage-picker-item:active { transform:scale(0.88); }
 .cage-picker-item.selected { border-color:var(--c-accent); background:var(--c-lav); }
 .cage-picker-item img { width:40px; height:40px; }
+.settings-hint { font-size:11px; font-weight:700; color:var(--c-textlt); margin:-3px 0 9px 2px; }
+.sticker-settings-open { width:100%; padding:12px 14px; border-radius:14px; border:2px dashed var(--c-border); background:transparent; font-family:'Nunito',sans-serif; font-size:13px; font-weight:800; color:var(--c-accent); cursor:pointer; transition:all .15s; display:flex; align-items:center; justify-content:space-between; }
+.sticker-settings-open:active { transform:scale(.98); background:var(--c-lav); }
+.sticker-settings-open-chevron { font-size:11px; color:var(--c-textlt); transition:transform .15s; }
+.sticker-settings-picker-grid { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-start; max-height:60vh; overflow-y:auto; padding:2px 1px 4px; }
+.sticker-settings-picker-item { width:58px; height:68px; border-radius:12px; background:var(--c-white); border:2px solid transparent; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; box-shadow:0 1px 4px var(--c-shadow); transition:all .15s; flex-shrink:0; padding:5px 3px; touch-action:none; user-select:none; -webkit-user-select:none; }
+.sticker-settings-picker-item:active { transform:scale(.92); }
+.sticker-settings-picker-item.hidden { opacity:.42; filter:grayscale(.65); background:var(--c-cream); }
+.sticker-settings-picker-item.custom { border-style:dashed; }
+.sticker-settings-picker-item.custom.hidden { opacity:.32; }
+.sticker-settings-picker-icon { width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-size:26px; line-height:1; }
+.sticker-settings-picker-icon img { width:32px; height:32px; display:block; }
+.sticker-settings-picker-label { max-width:52px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:8px; font-weight:800; color:var(--c-textlt); line-height:1; }
+.sticker-settings-picker-item.hidden .sticker-settings-picker-label { color:var(--c-textlt); }
 .toggle-row { display:flex; align-items:center; justify-content:space-between; background:var(--c-white); border-radius:14px; padding:12px 14px; box-shadow:0 1px 4px var(--c-shadow); margin-bottom:8px; }
 .toggle-label { font-size:14px; font-weight:700; color:var(--c-text); flex:1; }
 .toggle { width:44px; height:26px; border-radius:13px; background:var(--c-border); position:relative; cursor:pointer; transition:background 0.2s; border:none; flex-shrink:0; }
@@ -712,6 +726,12 @@ body {
       </div>
     </div>
     <div class="settings-section">
+      <div class="settings-title"><img src="icons/icon-paw-emoji.png" alt="">stickers</div>
+      <button class="sticker-settings-open" id="sticker-settings-open" onclick="openStickerSettingsPicker()">
+        <span>edit sticker picker</span><span class="sticker-settings-open-chevron" id="sticker-settings-open-chevron">▼</span>
+      </button>
+    </div>
+    <div class="settings-section">
       <div class="settings-title"><img src="icons/icon-stats.png" alt="">stats</div>
       <div id="stat-settings-stats"></div>
     </div>
@@ -828,6 +848,16 @@ body {
   </div>
 </div>
 
+<!-- STICKER SETTINGS PICKER MODAL -->
+<div class="modal-overlay" id="sticker-settings-overlay" onclick="closeStickerSettingsPickerOnOverlay(event)">
+  <div class="mini-modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">edit stickers</div>
+    <div class="settings-hint" style="margin-bottom:10px">tap to show or hide · hold a custom sticker to delete</div>
+    <div class="sticker-settings-picker-grid" id="sticker-settings-picker-grid"></div>
+  </div>
+</div>
+
 <!-- THEME EDIT MODAL -->
 <div class="modal-overlay" id="theme-edit-overlay" onclick="closeThemeEditOnOverlay(event)">
   <div class="modal" id="theme-edit-modal">
@@ -896,8 +926,9 @@ const CAGE_OPTIONS = [
   {id:'shark-cage',            label:'Shark cage'},
   {id:'toy-cage',              label:'Toy cage'},
   {id:'inverted-heart-cage',   label:'Inverted Heart cage'},
+  {id:'chastity-play',         label:'Chastity play'},
 ];
-function cageIconSrc(id){ return `icons/cage-${id}.png`; }
+function cageIconSrc(id){ return id==='chastity-play' ? 'icons/icon-lock.png' : `icons/cage-${id}.png`; }
 
 const MAX_CAGES = 8;
 const DEFAULT_CAGES = [
@@ -1051,6 +1082,7 @@ function getDefaultState(){
     identityTags: ['pup'],
     customIdentityTags: [],
     customStickers: [],
+    stickerEnabled: Object.fromEntries(DEFAULT_STICKERS.map(s=>[s.id,s.enabled!==false])),
     statEnabled: Object.fromEntries(STAT_DEFS.map(s=>[s.id,s.defaultEnabled!==false])),
     pinnedStats: [],
     statOrder: {stats:['daysLogged','daysLocked','lockRate','totalOrgasms'], streaks:['lockStreak','longestLock','sinceOrgasm','longestDenial'], additional:['wetDreams','handsfreeOrgasms']},
@@ -1079,7 +1111,17 @@ let editingThemeId=null;
 function fmtDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function parseDate(s){ const [y,m,d]=s.split('-').map(Number); const dt=new Date(y,m-1,d); dt.setHours(0,0,0,0); return dt; }
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-function allStickers(){ return [...DEFAULT_STICKERS.filter(s=>s.enabled),...state.customStickers]; }
+function normalizeStickerSettings(){
+  if(!state.stickerEnabled || typeof state.stickerEnabled!=='object') state.stickerEnabled={};
+  DEFAULT_STICKERS.forEach(s=>{ if(state.stickerEnabled[s.id]===undefined) state.stickerEnabled[s.id]=s.enabled!==false; });
+  if(!Array.isArray(state.customStickers)) state.customStickers=[];
+  state.customStickers.forEach(s=>{ if(s.enabled===undefined) s.enabled=true; });
+}
+function isStickerEnabled(s){
+  if(state.customStickers.some(c=>c.id===s.id)) return s.enabled!==false;
+  return state.stickerEnabled[s.id]!==false;
+}
+function allStickers(){ normalizeStickerSettings(); return [...DEFAULT_STICKERS,...state.customStickers].filter(isStickerEnabled); }
 function stickerById(id){ return [...DEFAULT_STICKERS,...state.customStickers].find(s=>s.id===id); }
 function getPetName(){
   const all=[...state.identityTags,...(state.customIdentityTags||[]).map(t=>t.value).filter(Boolean)];
@@ -1117,6 +1159,7 @@ function load(){
       if(state.countRuinedOrgasmsAsOrgasms===undefined) state.countRuinedOrgasmsAsOrgasms=true;
       if(!state.cages||!state.cages.length) state.cages=JSON.parse(JSON.stringify(DEFAULT_CAGES));
       if(!state.customThemes) state.customThemes=[];
+      normalizeStickerSettings();
       state.pinnedStats=(state.pinnedStats||[]).filter(id=>STAT_DEFS.some(sd=>sd.id===id));
       normalizeStatOrder();
       return;
@@ -1514,7 +1557,7 @@ async function processPendingSync(){
       if(daysErr) throw daysErr;
       const settings={
         density:state.density, identityTags:state.identityTags, customIdentityTags:state.customIdentityTags,
-        customStickers:state.customStickers, statEnabled:state.statEnabled, pinnedStats:state.pinnedStats, statOrder:state.statOrder,
+        customStickers:state.customStickers, stickerEnabled:state.stickerEnabled, statEnabled:state.statEnabled, pinnedStats:state.pinnedStats, statOrder:state.statOrder,
         countWetDreamsAsOrgasms:state.countWetDreamsAsOrgasms, countRuinedOrgasmsAsOrgasms:state.countRuinedOrgasmsAsOrgasms,
         customThemes:state.customThemes, activeCustomThemeId:state.activeCustomThemeId, cages:state.cages,
       };
@@ -1533,7 +1576,7 @@ async function processPendingSync(){
     if(pending.profile){
       const settings={
         density:state.density, identityTags:state.identityTags, customIdentityTags:state.customIdentityTags,
-        customStickers:state.customStickers, statEnabled:state.statEnabled, pinnedStats:state.pinnedStats, statOrder:state.statOrder,
+        customStickers:state.customStickers, stickerEnabled:state.stickerEnabled, statEnabled:state.statEnabled, pinnedStats:state.pinnedStats, statOrder:state.statOrder,
         countWetDreamsAsOrgasms:state.countWetDreamsAsOrgasms, countRuinedOrgasmsAsOrgasms:state.countRuinedOrgasmsAsOrgasms,
         customThemes:state.customThemes, activeCustomThemeId:state.activeCustomThemeId, cages:state.cages,
       };
@@ -1721,7 +1764,7 @@ function refreshAllViews(){
   const sTog=document.getElementById('sticker-toggle'); if(sTog) sTog.classList.toggle('on',state.showStickers);
   renderOrgasmCountingSettings();
   if(document.getElementById('view-settings').classList.contains('active')){
-    renderCageSettings(); renderPaletteGrid(); renderStatSettingsList(); renderOrgasmCountingSettings(); renderIdentityTags(); renderOwnerToggle(); updateBulkFillVisibility();
+    renderCageSettings(); renderPaletteGrid(); renderStickerSettings(); renderStatSettingsList(); renderOrgasmCountingSettings(); renderIdentityTags(); renderOwnerToggle(); updateBulkFillVisibility();
   }
 }
 
@@ -2295,7 +2338,112 @@ function saveCustomSticker(){
   const label=document.getElementById('sticker-name-input').value.trim()||'custom';
   state.customStickers.push({id:'custom-'+Date.now(),emoji,label,icon:null,enabled:true});
   save(); document.getElementById('add-sticker-overlay').classList.remove('open');
-  renderStickerPicker(); showToast(`sticker "${label}" added!`);
+  renderStickerPicker(); renderStickerSettings(); showToast(`sticker "${label}" added!`);
+}
+
+// ══════════════════════════════════════
+//  STICKER SETTINGS
+// ══════════════════════════════════════
+let stickerSettingsLongPressTimer=null;
+let stickerSettingsPointerId=null;
+let stickerSettingsLongPressTriggered=false;
+
+function openStickerSettingsPicker(){
+  renderStickerSettings();
+  document.getElementById('sticker-settings-overlay').classList.add('open');
+  const chev=document.getElementById('sticker-settings-open-chevron');
+  if(chev) chev.style.transform='rotate(180deg)';
+}
+function closeStickerSettingsPicker(){
+  const overlay=document.getElementById('sticker-settings-overlay');
+  if(overlay) overlay.classList.remove('open');
+  const chev=document.getElementById('sticker-settings-open-chevron');
+  if(chev) chev.style.transform='';
+}
+function closeStickerSettingsPickerOnOverlay(e){
+  if(e.target===document.getElementById('sticker-settings-overlay')) closeStickerSettingsPicker();
+}
+function renderStickerSettings(){
+  const grid=document.getElementById('sticker-settings-picker-grid'); if(!grid) return;
+  normalizeStickerSettings();
+  grid.innerHTML='';
+  const customIds=new Set(state.customStickers.map(s=>s.id));
+  [...DEFAULT_STICKERS,...state.customStickers].forEach(s=>{
+    const isCustom=customIds.has(s.id);
+    const shown=isStickerEnabled(s);
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='sticker-settings-picker-item'+(shown?'':' hidden')+(isCustom?' custom':'');
+    btn.dataset.id=s.id;
+    btn.title=isCustom?'tap to show/hide · hold to delete':'tap to show/hide';
+    const icon=document.createElement('span'); icon.className='sticker-settings-picker-icon'; icon.innerHTML=stickerIconHtml(s);
+    const label=document.createElement('span'); label.className='sticker-settings-picker-label'; label.textContent=s.label;
+    btn.append(icon,label);
+    btn.addEventListener('pointerdown',e=>beginStickerSettingsPointer(e,btn,s.id,isCustom));
+    btn.addEventListener('pointerup',e=>finishStickerSettingsPointer(e,btn,s.id,isCustom));
+    btn.addEventListener('pointercancel',e=>cancelStickerSettingsPointer(e,btn));
+    btn.addEventListener('pointerleave',e=>cancelStickerSettingsPointer(e,btn));
+    grid.appendChild(btn);
+  });
+}
+function clearStickerSettingsLongPress(){
+  if(stickerSettingsLongPressTimer){ clearTimeout(stickerSettingsLongPressTimer); stickerSettingsLongPressTimer=null; }
+  stickerSettingsPointerId=null;
+}
+function beginStickerSettingsPointer(e,btn,id,isCustom){
+  if(e.button!==undefined && e.button!==0) return;
+  clearStickerSettingsLongPress();
+  stickerSettingsPointerId=e.pointerId;
+  stickerSettingsLongPressTriggered=false;
+  try{ btn.setPointerCapture(e.pointerId); }catch(_){ }
+  if(isCustom){
+    stickerSettingsLongPressTimer=setTimeout(()=>{
+      stickerSettingsLongPressTimer=null;
+      stickerSettingsLongPressTriggered=true;
+      if(navigator.vibrate) navigator.vibrate(20);
+      deleteCustomSticker(id);
+    },550);
+  }
+}
+function finishStickerSettingsPointer(e,btn,id,isCustom){
+  if(stickerSettingsPointerId!==null && e.pointerId!==stickerSettingsPointerId) return;
+  const wasLong=stickerSettingsLongPressTriggered;
+  clearStickerSettingsLongPress();
+  try{ btn.releasePointerCapture(e.pointerId); }catch(_){ }
+  if(wasLong) return;
+  toggleStickerEnabled(id);
+}
+function cancelStickerSettingsPointer(e,btn){
+  if(stickerSettingsPointerId!==null && e.pointerId!==stickerSettingsPointerId) return;
+  clearStickerSettingsLongPress();
+  try{ btn.releasePointerCapture(e.pointerId); }catch(_){ }
+}
+function toggleStickerEnabled(id){
+  normalizeStickerSettings();
+  const custom=state.customStickers.find(s=>s.id===id);
+  if(custom) custom.enabled=custom.enabled===false;
+  else state.stickerEnabled[id]=state.stickerEnabled[id]===false;
+  save(); renderStickerPicker(); renderStickerSettings();
+}
+function deleteCustomSticker(id){
+  const sticker=state.customStickers.find(s=>s.id===id); if(!sticker) return;
+  if(!confirm(`delete the custom sticker "${sticker.label}"? this cannot be undone.`)) return;
+  state.customStickers=state.customStickers.filter(s=>s.id!==id);
+  selectedStickers.delete(id);
+  const affected=[];
+  Object.entries(state.days||{}).forEach(([date,day])=>{
+    if(day.stickers&&day.stickers.includes(id)){
+      day.stickers=day.stickers.filter(sid=>sid!==id);
+      affected.push(date);
+    }
+  });
+  save();
+  renderStickerPicker(); renderStickerSettings(); renderCurrentCalView(); renderStatTiles();
+  if(currentUser){
+    affected.forEach(date=>markDayPending(date,'upsert',state.days[date]));
+    processPendingSync();
+  }
+  showToast(`sticker "${sticker.label}" deleted`);
 }
 
 // ══════════════════════════════════════
@@ -2666,7 +2814,7 @@ function switchView(v){
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
   document.getElementById('nav-'+v).classList.add('active');
-  if(v==='settings'){ renderCageSettings(); renderPaletteGrid(); renderStatSettingsList(); renderOrgasmCountingSettings(); renderIdentityTags(); renderOwnerToggle(); updateBulkFillVisibility(); }
+  if(v==='settings'){ renderCageSettings(); renderPaletteGrid(); renderStickerSettings(); renderStatSettingsList(); renderOrgasmCountingSettings(); renderIdentityTags(); renderOwnerToggle(); updateBulkFillVisibility(); }
 }
 function exportData(){
   const json=JSON.stringify(state, null, 2);
@@ -2694,6 +2842,7 @@ function importData(input){
       STAT_DEFS.forEach(sd=>{ if(state.statEnabled[sd.id]===undefined) state.statEnabled[sd.id]=sd.defaultEnabled!==false; });
   if(state.countWetDreamsAsOrgasms===undefined) state.countWetDreamsAsOrgasms=false;
   if(state.countRuinedOrgasmsAsOrgasms===undefined) state.countRuinedOrgasmsAsOrgasms=true;
+      normalizeStickerSettings();
       normalizeStatOrder();
       save();
       document.body.setAttribute('data-theme', state.theme||'soft-puppy');
@@ -2701,7 +2850,7 @@ function importData(input){
       applyActiveCustomTheme();
       renderCurrentCalView(); renderStatTiles(); renderHeaderPins();
       if(document.getElementById('view-settings').classList.contains('active')){
-        renderCageSettings(); renderPaletteGrid(); renderStatSettingsList(); renderOrgasmCountingSettings(); renderIdentityTags(); renderOwnerToggle(); updateBulkFillVisibility();
+        renderCageSettings(); renderPaletteGrid(); renderStickerSettings(); renderStatSettingsList(); renderOrgasmCountingSettings(); renderIdentityTags(); renderOwnerToggle(); updateBulkFillVisibility();
       }
       showToast('data imported successfully!');
       if(currentUser){
