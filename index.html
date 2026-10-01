@@ -198,9 +198,10 @@ body {
 .pin-pill-val { font-family:'Fredoka One',cursive; font-size:14px; line-height:1; }
 
 /* ── STAT TILES ── */
-.stat-tiles-wrap { padding:var(--d-stat-tiles-pad); overflow-x:auto; scrollbar-width:none; display:flex; gap:var(--d-stat-tiles-gap); -webkit-overflow-scrolling:touch; }
-.stat-tiles-wrap::-webkit-scrollbar { display:none; }
-.stat-tile { background:var(--c-card); border-radius:20px; padding:var(--d-stat-tile-pad); min-width:var(--d-stat-tile-minw); flex-shrink:0; box-shadow:0 2px 10px var(--c-shadow); text-align:center; position:relative; cursor:pointer; user-select:none; transition:transform 0.15s, box-shadow 0.15s; -webkit-user-select:none; }
+.stat-pages { overflow-x:auto; display:flex; scrollbar-width:none; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain; }
+.stat-pages::-webkit-scrollbar { display:none; }
+.stat-page { min-width:100%; box-sizing:border-box; padding:4px 16px 0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; scroll-snap-align:start; }
+.stat-tile { background:var(--c-card); border-radius:20px; padding:var(--d-stat-tile-pad); min-width:0; min-height:78px; box-shadow:0 2px 10px var(--c-shadow); text-align:center; position:relative; cursor:pointer; user-select:none; transition:transform 0.15s, box-shadow 0.15s; -webkit-user-select:none; }
 .stat-tile:active { transform:scale(0.94); }
 .stat-tile.pinned { box-shadow:0 2px 10px var(--c-shadow), 0 0 0 2px var(--c-accent); }
 .stat-tile-icon { font-size:var(--d-stat-icon-size); line-height:1; margin-bottom:3px; display:flex; align-items:center; justify-content:center; }
@@ -209,6 +210,15 @@ body {
 .stat-tile-lbl { font-size:var(--d-stat-lbl-size); font-weight:800; color:var(--c-textlt); letter-spacing:0.4px; margin-top:3px; line-height:1.2; }
 .stat-tile-pin { position:absolute; top:5px; right:6px; font-size:9px; opacity:0.7; line-height:1; }
 .stat-tile.pressing { transform:scale(0.94); box-shadow:0 0 0 3px var(--c-accent); }
+.stat-page-label { font-size:10px; font-weight:700; color:var(--c-textlt); text-align:left; padding:3px 20px 8px; letter-spacing:0.3px; text-transform:lowercase; }
+.stat-settings-group { margin-top:14px; }
+.stat-settings-group-title { font-size:11px; font-weight:900; color:var(--c-textlt); text-transform:lowercase; letter-spacing:0.4px; margin-bottom:5px; display:flex; align-items:center; gap:5px; }
+.stat-settings-group-title img { width:14px; height:14px; object-fit:contain; }
+.stat-toggle-row { touch-action:none; }
+.stat-toggle-row.dragging { opacity:0.45; box-shadow:0 0 0 2px var(--c-accent); border-radius:10px; }
+.stat-drag-handle { font-size:15px; color:var(--c-textlt); width:22px; text-align:center; cursor:grab; opacity:0.7; flex-shrink:0; touch-action:none; }
+.stat-drag-handle:active { cursor:grabbing; }
+.stat-settings-empty { font-size:11px; color:var(--c-textlt); padding:5px 0; }
 .stat-hint { font-size:10px; font-weight:700; color:var(--c-textlt); text-align:center; padding:2px 20px 8px; letter-spacing:0.3px; }
 
 /* ── MONTH NAV ── */
@@ -566,7 +576,8 @@ body {
     <div class="header-title">pup lock <img class="header-logo" src="icons/logo-main.png" alt="pup lock logo"></div>
     <div class="header-pins" id="header-pins"></div>
   </div>
-  <div class="stat-tiles-wrap" id="stat-tiles-wrap"></div>
+  <div class="stat-pages" id="stat-pages"></div>
+  <div class="stat-page-label" id="stat-page-label">stats</div>
   <div class="stat-hint">hold a stat to pin it to the header</div>
 
   <!-- CALENDAR VIEW -->
@@ -701,7 +712,15 @@ body {
     </div>
     <div class="settings-section">
       <div class="settings-title"><img src="icons/icon-stats.png" alt="">stats</div>
-      <div id="stat-settings-list"></div>
+      <div id="stat-settings-stats"></div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-title"><img src="icons/icon-flame.png" alt="">streaks</div>
+      <div id="stat-settings-streaks"></div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-title"><img src="icons/icon-stats.png" alt="">additional tracking</div>
+      <div id="stat-settings-additional"></div>
       <div class="toggle-row" style="margin-top:12px">
         <div class="toggle-label">Count wet dreams as orgasms</div>
         <button class="toggle" id="count-wet-dreams-toggle" onclick="toggleOrgasmCountingSetting('wetDreams')" aria-label="Count wet dreams as orgasms"></button>
@@ -887,16 +906,16 @@ const DEFAULT_CAGES = [
 ];
 
 const STAT_DEFS = [
-  {id:'daysLogged',      iconImg:'icons/icon-calendar.png',       label:'days logged',           fmt:v=>v+'d', defaultEnabled:true},
-  {id:'daysLocked',      iconImg:'icons/icon-lock.png',           label:'days locked',           fmt:v=>v+'d', defaultEnabled:true},
-  {id:'lockRate',        iconImg:'icons/icon-lock.png',           label:'lock rate',             fmt:v=>v+'%', defaultEnabled:true},
-  {id:'totalOrgasms',    iconImg:'icons/icon-droplet-orgasm.png', label:'total orgasms',         fmt:v=>v, defaultEnabled:true},
-  {id:'lockStreak',     iconImg:'icons/icon-stopwatch.png',      label:'current lock streak',   fmt:v=>v+'d', defaultEnabled:true},
-  {id:'longestLock',    iconImg:'icons/icon-trophy.png',         label:'longest lock streak',   fmt:v=>v+'d', defaultEnabled:true},
-  {id:'sinceOrgasm',    iconImg:'icons/icon-droplet-orgasm.png', label:'days since orgasm',     fmt:v=>v+'d', defaultEnabled:true},
-  {id:'longestDenial',  iconImg:'icons/icon-ribbon.png',         label:'longest denial streak', fmt:v=>v+'d', defaultEnabled:true},
-  {id:'wetDreams',      iconImg:'icons/icon-wet-dream.png',      label:'wet dreams',            fmt:v=>v, defaultEnabled:false},
-  {id:'handsfreeOrgasms',iconImg:'icons/icon-handsfree.png',     label:'hands-free orgasms',    fmt:v=>v, defaultEnabled:false},
+  {id:'daysLogged', group:'stats',      iconImg:'icons/icon-calendar.png',       label:'days logged',           fmt:v=>v+'d', defaultEnabled:true},
+  {id:'daysLocked', group:'stats',      iconImg:'icons/icon-lock.png',           label:'days locked',           fmt:v=>v+'d', defaultEnabled:true},
+  {id:'lockRate', group:'stats',        iconImg:'icons/icon-lock.png',           label:'lock rate',             fmt:v=>v+'%', defaultEnabled:true},
+  {id:'totalOrgasms', group:'stats',    iconImg:'icons/icon-droplet-orgasm.png', label:'total orgasms',         fmt:v=>v, defaultEnabled:true},
+  {id:'lockStreak', group:'streaks',     iconImg:'icons/icon-stopwatch.png',      label:'current lock streak',   fmt:v=>v+'d', defaultEnabled:true},
+  {id:'longestLock', group:'streaks',    iconImg:'icons/icon-trophy.png',         label:'longest lock streak',   fmt:v=>v+'d', defaultEnabled:true},
+  {id:'sinceOrgasm', group:'streaks',    iconImg:'icons/icon-droplet-orgasm.png', label:'days since orgasm',     fmt:v=>v+'d', defaultEnabled:true},
+  {id:'longestDenial', group:'streaks',  iconImg:'icons/icon-ribbon.png',         label:'longest denial streak', fmt:v=>v+'d', defaultEnabled:true},
+  {id:'wetDreams', group:'additional',      iconImg:'icons/icon-wet-dream.png',      label:'wet dreams',            fmt:v=>v, defaultEnabled:false},
+  {id:'handsfreeOrgasms', group:'additional',iconImg:'icons/icon-handsfree.png',     label:'hands-free orgasms',    fmt:v=>v, defaultEnabled:false},
 ];
 function statIconHtml(s){ return `<img src="${s.iconImg}" alt="">`; }
 
@@ -1033,6 +1052,7 @@ function getDefaultState(){
     customStickers: [],
     statEnabled: Object.fromEntries(STAT_DEFS.map(s=>[s.id,s.defaultEnabled!==false])),
     pinnedStats: [],
+    statOrder: {stats:['daysLogged','daysLocked','lockRate','totalOrgasms'], streaks:['lockStreak','longestLock','sinceOrgasm','longestDenial'], additional:['wetDreams','handsfreeOrgasms']},
     countWetDreamsAsOrgasms: false,
     countRuinedOrgasmsAsOrgasms: true,
     calView: 'month',
@@ -1097,7 +1117,7 @@ function load(){
       if(!state.cages||!state.cages.length) state.cages=JSON.parse(JSON.stringify(DEFAULT_CAGES));
       if(!state.customThemes) state.customThemes=[];
       state.pinnedStats=(state.pinnedStats||[]).filter(id=>STAT_DEFS.some(sd=>sd.id===id));
-      state.pinnedStats=(state.pinnedStats||[]).filter(id=>STAT_DEFS.some(sd=>sd.id===id));
+      normalizeStatOrder();
       return;
     }
     migrateOldData();
@@ -1141,6 +1161,14 @@ function migrateOldData(){
       }
       save(); break;
     }catch(e){}
+  }
+}
+function normalizeStatOrder(){
+  const defaults={stats:['daysLogged','daysLocked','lockRate','totalOrgasms'],streaks:['lockStreak','longestLock','sinceOrgasm','longestDenial'],additional:['wetDreams','handsfreeOrgasms']};
+  const old=state.statOrder||{}; state.statOrder={};
+  for(const group of Object.keys(defaults)){
+    const valid=defaults[group], incoming=Array.isArray(old[group])?old[group]:[];
+    state.statOrder[group]=[...incoming.filter(id=>valid.includes(id)),...valid.filter(id=>!incoming.includes(id))];
   }
 }
 function save(){ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(e){} syncProfileToCloud(); }
@@ -1485,7 +1513,7 @@ async function processPendingSync(){
       if(daysErr) throw daysErr;
       const settings={
         density:state.density, identityTags:state.identityTags, customIdentityTags:state.customIdentityTags,
-        customStickers:state.customStickers, statEnabled:state.statEnabled, pinnedStats:state.pinnedStats,
+        customStickers:state.customStickers, statEnabled:state.statEnabled, pinnedStats:state.pinnedStats, statOrder:state.statOrder,
         countWetDreamsAsOrgasms:state.countWetDreamsAsOrgasms, countRuinedOrgasmsAsOrgasms:state.countRuinedOrgasmsAsOrgasms,
         customThemes:state.customThemes, activeCustomThemeId:state.activeCustomThemeId, cages:state.cages,
       };
@@ -1504,7 +1532,7 @@ async function processPendingSync(){
     if(pending.profile){
       const settings={
         density:state.density, identityTags:state.identityTags, customIdentityTags:state.customIdentityTags,
-        customStickers:state.customStickers, statEnabled:state.statEnabled, pinnedStats:state.pinnedStats,
+        customStickers:state.customStickers, statEnabled:state.statEnabled, pinnedStats:state.pinnedStats, statOrder:state.statOrder,
         countWetDreamsAsOrgasms:state.countWetDreamsAsOrgasms, countRuinedOrgasmsAsOrgasms:state.countRuinedOrgasmsAsOrgasms,
         customThemes:state.customThemes, activeCustomThemeId:state.activeCustomThemeId, cages:state.cages,
       };
@@ -1654,6 +1682,7 @@ async function loadCloudData(){
   if(!state.cages||!state.cages.length) state.cages=JSON.parse(JSON.stringify(DEFAULT_CAGES));
   if(!state.customThemes) state.customThemes=[];
   if(state.hasOwner===undefined) state.hasOwner=true;
+  normalizeStatOrder();
 
   try{ localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); }catch(e){}
   refreshAllViews();
@@ -1814,65 +1843,61 @@ function computeStats(){
 //  STAT TILES
 // ══════════════════════════════════════
 let longPressTimer=null;
+const STAT_GROUPS={stats:'stats',streaks:'streaks',additional:'additional tracking'};
+let statPageNames=[];
+function getOrderedStatDefs(group){ normalizeStatOrder(); return state.statOrder[group].filter(id=>state.statEnabled[id]).map(id=>STAT_DEFS.find(s=>s.id===id)).filter(Boolean); }
 function renderStatTiles(){
-  const wrap=document.getElementById('stat-tiles-wrap'); wrap.innerHTML='';
-  const stats=computeStats();
-  const visible=STAT_DEFS.filter(s=>state.statEnabled[s.id]);
-  visible.forEach(s=>{
-    const val=stats[s.id], isPinned=state.pinnedStats.includes(s.id);
-    const tile=document.createElement('div');
-    tile.className='stat-tile'+(isPinned?' pinned':''); tile.dataset.id=s.id;
-    tile.innerHTML=`${isPinned?'<div class="stat-tile-pin">📌</div>':''}<div class="stat-tile-icon">${statIconHtml(s)}</div><div class="stat-tile-val">${val}</div><div class="stat-tile-lbl">${s.label}</div>`;
-    tile.addEventListener('pointerdown',()=>{ tile.classList.add('pressing'); longPressTimer=setTimeout(()=>{ tile.classList.remove('pressing'); togglePin(s.id); if(navigator.vibrate)navigator.vibrate(30); },500); });
-    const cp=()=>{ clearTimeout(longPressTimer); tile.classList.remove('pressing'); };
-    tile.addEventListener('pointerup',cp); tile.addEventListener('pointerleave',cp); tile.addEventListener('pointermove',cp);
-    wrap.appendChild(tile);
+  const pages=document.getElementById('stat-pages'); if(!pages) return;
+  const label=document.getElementById('stat-page-label'); pages.innerHTML='';
+  const stats=computeStats(); statPageNames=[];
+  ['stats','streaks','additional'].forEach(group=>{
+    const defs=getOrderedStatDefs(group); if(!defs.length) return;
+    const page=document.createElement('div'); page.className='stat-page'; page.dataset.group=group;
+    defs.forEach(s=>{
+      const tile=document.createElement('div'); tile.className='stat-tile'+(state.pinnedStats.includes(s.id)?' pinned':''); tile.dataset.id=s.id;
+      tile.innerHTML=`${state.pinnedStats.includes(s.id)?'<div class="stat-tile-pin">📌</div>':''}<div class="stat-tile-icon">${statIconHtml(s)}</div><div class="stat-tile-val">${s.fmt(stats[s.id])}</div><div class="stat-tile-lbl">${s.label}</div>`;
+      tile.addEventListener('pointerdown',()=>{ tile.classList.add('pressing'); longPressTimer=setTimeout(()=>{ tile.classList.remove('pressing'); togglePin(s.id); if(navigator.vibrate)navigator.vibrate(30); },500); });
+      const cp=()=>{clearTimeout(longPressTimer);tile.classList.remove('pressing');}; tile.addEventListener('pointerup',cp); tile.addEventListener('pointerleave',cp); tile.addEventListener('pointermove',cp); page.appendChild(tile);
+    });
+    pages.appendChild(page); statPageNames.push(STAT_GROUPS[group]);
   });
-  renderHeaderPins(stats);
-  checkFeedback(stats.lockStreak);
+  const updateLabel=()=>{const idx=Math.min(statPageNames.length-1,Math.max(0,Math.round(pages.scrollLeft/Math.max(1,pages.clientWidth)))); if(label) label.textContent=statPageNames[idx]||'stats';};
+  pages.onscroll=updateLabel; requestAnimationFrame(updateLabel); renderHeaderPins(stats); checkFeedback(stats.lockStreak);
 }
 function togglePin(id){
   if(state.pinnedStats.includes(id)) state.pinnedStats=state.pinnedStats.filter(p=>p!==id);
-  else{ if(state.pinnedStats.length>=2) state.pinnedStats.shift(); state.pinnedStats.push(id); }
-  save(); renderStatTiles(); renderStatSettingsList();
+  else{if(state.pinnedStats.length>=2)state.pinnedStats.shift();state.pinnedStats.push(id);}
+  save();renderStatTiles();renderStatSettingsList();
 }
 function renderHeaderPins(stats){
-  const pinsEl=document.getElementById('header-pins'); pinsEl.innerHTML='';
-  if(!stats) stats=computeStats();
-  state.pinnedStats.forEach(id=>{
-    const def=STAT_DEFS.find(s=>s.id===id);
-    if(!def||!state.statEnabled[id]) return;
-    const pill=document.createElement('div'); pill.className='pin-pill';
-    pill.innerHTML=`<span class="pin-pill-icon">${statIconHtml(def)}</span><span class="pin-pill-val">${def.fmt(stats[id])}</span>`;
-    pill.title=def.label; pinsEl.appendChild(pill);
-  });
+  const pinsEl=document.getElementById('header-pins'); pinsEl.innerHTML=''; if(!stats)stats=computeStats();
+  state.pinnedStats.forEach(id=>{const def=STAT_DEFS.find(s=>s.id===id);if(!def||!state.statEnabled[id])return;const pill=document.createElement('div');pill.className='pin-pill';pill.innerHTML=`<span class="pin-pill-icon">${statIconHtml(def)}</span><span class="pin-pill-val">${def.fmt(stats[id])}</span>`;pill.title=def.label;pinsEl.appendChild(pill);});
 }
 function renderStatSettingsList(){
-  const list=document.getElementById('stat-settings-list'); if(!list) return;
-  list.innerHTML='';
-  STAT_DEFS.forEach(s=>{
-    const isPinned=state.pinnedStats.includes(s.id);
-    const row=document.createElement('div'); row.className='stat-toggle-row';
-    row.innerHTML=`<div class="stat-toggle-label">${statIconHtml(s)} ${s.label}${isPinned?' 📌':''}</div><div class="stat-toggle-actions">${isPinned?`<button class="unpin-btn" onclick="togglePin('${s.id}')">unpin</button>`:''}<button class="toggle${state.statEnabled[s.id]?' on':''}" id="stog-${s.id}" onclick="toggleStatEnabled('${s.id}')"></button></div>`;
-    list.appendChild(row);
+  normalizeStatOrder();
+  const targets={stats:'stat-settings-stats',streaks:'stat-settings-streaks',additional:'stat-settings-additional'};
+  Object.entries(targets).forEach(([group,listId])=>{
+    const list=document.getElementById(listId); if(!list)return; list.innerHTML='';
+    const defs=state.statOrder[group].map(id=>STAT_DEFS.find(s=>s.id===id)).filter(Boolean);
+    if(!defs.length){list.innerHTML='<div class="stat-settings-empty">no stats enabled</div>';return;}
+    defs.forEach(s=>{
+      const row=document.createElement('div');row.className='stat-toggle-row';row.dataset.statId=s.id;
+      row.innerHTML=`<div class="stat-drag-handle" aria-label="hold and drag to reorder">⋮⋮</div><div class="stat-toggle-label">${statIconHtml(s)} ${s.label}${state.pinnedStats.includes(s.id)?' 📌':''}</div><div class="stat-toggle-actions">${state.pinnedStats.includes(s.id)?`<button class="unpin-btn" onclick="togglePin('${s.id}')">unpin</button>`:''}<button class="toggle${state.statEnabled[s.id]?' on':''}" onclick="toggleStatEnabled('${s.id}')"></button></div>`;
+      list.appendChild(row); attachStatDrag(row,group,s.id);
+    });
   });
 }
-function toggleStatEnabled(id){
-  state.statEnabled[id]=!state.statEnabled[id];
-  if(!state.statEnabled[id]&&state.pinnedStats.includes(id)) state.pinnedStats=state.pinnedStats.filter(p=>p!==id);
-  save(); renderStatTiles(); renderStatSettingsList();
+function attachStatDrag(row,group,id){
+  const handle=row.querySelector('.stat-drag-handle'); let timer=null,dragging=false;
+  const clear=()=>{if(timer){clearTimeout(timer);timer=null;}};
+  handle.addEventListener('pointerdown',e=>{e.preventDefault();handle.setPointerCapture?.(e.pointerId);timer=setTimeout(()=>{dragging=true;row.classList.add('dragging');if(navigator.vibrate)navigator.vibrate(20);},420);});
+  handle.addEventListener('pointermove',e=>{if(!dragging)return;const list=row.parentElement;const rows=[...list.querySelectorAll('.stat-toggle-row')].filter(r=>r!==row);const target=rows.find(r=>e.clientY<r.getBoundingClientRect().top+r.getBoundingClientRect().height/2);if(target)list.insertBefore(row,target);else if(rows.length)list.appendChild(row);});
+  const finish=()=>{clear();if(!dragging)return;dragging=false;row.classList.remove('dragging');const ids=[...row.parentElement.querySelectorAll('.stat-toggle-row')].map(r=>r.dataset.statId);state.statOrder[group]=ids.concat(state.statOrder[group].filter(x=>!ids.includes(x)));save();renderStatTiles();renderStatSettingsList();};
+  handle.addEventListener('pointerup',finish);handle.addEventListener('pointercancel',finish);
 }
-function renderOrgasmCountingSettings(){
-  const wet=document.getElementById('count-wet-dreams-toggle');
-  const ruined=document.getElementById('count-ruined-orgasms-toggle');
-  if(wet){ wet.classList.toggle('on',!!state.countWetDreamsAsOrgasms); wet.title=state.countWetDreamsAsOrgasms?'On':'Off'; }
-  if(ruined){ ruined.classList.toggle('on',!!state.countRuinedOrgasmsAsOrgasms); ruined.title=state.countRuinedOrgasmsAsOrgasms?'On':'Off'; }
-}
-function toggleOrgasmCountingSetting(type){
-  if(type==='wetDreams') state.countWetDreamsAsOrgasms=!state.countWetDreamsAsOrgasms;
-  if(type==='ruined') state.countRuinedOrgasmsAsOrgasms=!state.countRuinedOrgasmsAsOrgasms;
-  save(); renderStatTiles(); renderStatSettingsList(); renderOrgasmCountingSettings();
-}
+function toggleStatEnabled(id){state.statEnabled[id]=!state.statEnabled[id];if(!state.statEnabled[id]&&state.pinnedStats.includes(id))state.pinnedStats=state.pinnedStats.filter(p=>p!==id);save();renderStatTiles();renderStatSettingsList();}
+function renderOrgasmCountingSettings(){const wet=document.getElementById('count-wet-dreams-toggle'),ruined=document.getElementById('count-ruined-orgasms-toggle');if(wet){wet.classList.toggle('on',!!state.countWetDreamsAsOrgasms);wet.title=state.countWetDreamsAsOrgasms?'On':'Off';}if(ruined){ruined.classList.toggle('on',!!state.countRuinedOrgasmsAsOrgasms);ruined.title=state.countRuinedOrgasmsAsOrgasms?'On':'Off';}}
+function toggleOrgasmCountingSetting(type){if(type==='wetDreams')state.countWetDreamsAsOrgasms=!state.countWetDreamsAsOrgasms;if(type==='ruined')state.countRuinedOrgasmsAsOrgasms=!state.countRuinedOrgasmsAsOrgasms;save();renderStatTiles();renderStatSettingsList();renderOrgasmCountingSettings();}
 
 // ══════════════════════════════════════
 //  FEEDBACK
@@ -2668,6 +2693,7 @@ function importData(input){
       STAT_DEFS.forEach(sd=>{ if(state.statEnabled[sd.id]===undefined) state.statEnabled[sd.id]=sd.defaultEnabled!==false; });
   if(state.countWetDreamsAsOrgasms===undefined) state.countWetDreamsAsOrgasms=false;
   if(state.countRuinedOrgasmsAsOrgasms===undefined) state.countRuinedOrgasmsAsOrgasms=true;
+      normalizeStatOrder();
       save();
       document.body.setAttribute('data-theme', state.theme||'soft-puppy');
       document.body.setAttribute('data-density', state.density||'default');
