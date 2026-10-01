@@ -2812,7 +2812,8 @@ async function exportImage(){
     monthHead.style.padding='18px 0 4px';
     const monthLabel=document.createElement('div');
     monthLabel.className='month-label';
-    monthLabel.textContent=MONTHS[currentMonth]+' '+currentYear;
+    const currentViewLabel=source.querySelector('#month-label');
+    monthLabel.textContent=currentViewLabel ? currentViewLabel.textContent : (MONTHS[currentMonth]+' '+currentYear);
     monthHead.appendChild(monthLabel);
     exportRoot.appendChild(monthHead);
 
@@ -2823,14 +2824,16 @@ async function exportImage(){
       exportRoot.appendChild(legendClone);
     }
 
-    // ── calendar only: no arrows, view tabs, or share button ──
+    // ── current calendar view only: no arrows, view tabs, or share button ──
+    // Export the same view the user is currently looking at: month, week, year, or total.
     const calendarSection=document.createElement('div');
-    const monthView=source.querySelector('#calview-month');
-    if(monthView){
-      const monthClone=monthView.cloneNode(true);
-      monthClone.style.display='block';
-      monthClone.style.width='100%';
-      calendarSection.appendChild(monthClone);
+    const activeView=state.calView||'month';
+    const viewSource=source.querySelector('#calview-'+activeView);
+    if(viewSource){
+      const viewClone=viewSource.cloneNode(true);
+      viewClone.style.display='block';
+      viewClone.style.width='100%';
+      calendarSection.appendChild(viewClone);
     }
     exportRoot.appendChild(calendarSection);
 
