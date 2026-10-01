@@ -215,9 +215,8 @@ body {
 .stat-settings-group { margin-top:14px; }
 .stat-settings-group-title { font-size:11px; font-weight:900; color:var(--c-textlt); text-transform:lowercase; letter-spacing:0.4px; margin-bottom:5px; display:flex; align-items:center; gap:5px; }
 .stat-settings-group-title img { width:14px; height:14px; object-fit:contain; }
-.stat-toggle-row { touch-action:none; user-select:none; -webkit-user-select:none; transition:transform 0.12s ease, opacity 0.12s ease, box-shadow 0.12s ease; }
-.stat-toggle-row.dragging { opacity:0.92; box-shadow:0 6px 18px var(--c-shadowm); transform:scale(1.02); position:relative; z-index:5; }
-.stat-toggle-row.drag-placeholder { visibility:hidden; box-shadow:none; }
+.stat-toggle-row { touch-action:none; }
+.stat-toggle-row.dragging { opacity:0.45; box-shadow:0 0 0 2px var(--c-accent); border-radius:10px; }
 .stat-drag-handle { font-size:15px; color:var(--c-textlt); width:22px; text-align:center; cursor:grab; opacity:0.7; flex-shrink:0; touch-action:none; }
 .stat-drag-handle:active { cursor:grabbing; }
 .stat-settings-empty { font-size:11px; color:var(--c-textlt); padding:5px 0; }
@@ -1890,77 +1889,12 @@ function renderStatSettingsList(){
   });
 }
 function attachStatDrag(row,group,id){
-  const handle=row.querySelector('.stat-drag-handle');
-  let timer=null, dragging=false, pointerId=null, placeholder=null, lastY=0, startY=0, raf=null;
-  const clearTimer=()=>{ if(timer){ clearTimeout(timer); timer=null; } };
-  const rows=()=>[...row.parentElement.querySelectorAll('.stat-toggle-row')].filter(r=>r!==row && r!==placeholder);
-  const cleanup=()=>{
-    clearTimer();
-    if(raf){cancelAnimationFrame(raf);raf=null;}
-    if(placeholder){ placeholder.remove(); placeholder=null; }
-    row.classList.remove('dragging');
-    row.style.transform='';
-    row.style.transition='';
-    dragging=false;
-    pointerId=null;
-  };
-  const finish=()=>{
-    if(!dragging){ clearTimer(); return; }
-    const list=row.parentElement;
-    // Put the real row exactly where the placeholder ended up.
-    if(placeholder && placeholder.parentElement===list) list.insertBefore(row,placeholder);
-    const ids=[...list.querySelectorAll('.stat-toggle-row')].map(r=>r.dataset.statId);
-    state.statOrder[group]=ids;
-    // Update the dashboard immediately; cloud/local persistence happens alongside it.
-    cleanup();
-    renderStatTiles();
-    save();
-    // Rebuild the settings rows after the visual update has landed.
-    requestAnimationFrame(()=>renderStatSettingsList());
-  };
-  const move=(e)=>{
-    if(!dragging) return;
-    lastY=e.clientY;
-    row.style.transform=`translateY(${lastY-startY}px) scale(1.02)`;
-    if(raf) return;
-    raf=requestAnimationFrame(()=>{
-      raf=null;
-      if(!dragging || !placeholder) return;
-      const list=row.parentElement;
-      const candidates=rows();
-      let before=null;
-      for(const r of candidates){
-        const rect=r.getBoundingClientRect();
-        if(lastY < rect.top + rect.height/2){ before=r; break; }
-      }
-      if(before) list.insertBefore(placeholder,before);
-      else list.appendChild(placeholder);
-    });
-  };
-  handle.addEventListener('pointerdown',e=>{
-    if(e.button!==undefined && e.button!==0) return;
-    e.preventDefault();
-    pointerId=e.pointerId;
-    clearTimer();
-    timer=setTimeout(()=>{
-      timer=null;
-      dragging=true;
-      row.classList.add('dragging');
-      startY=lastY=e.clientY;
-      // Reserve the row's exact space so the list doesn't jump while dragging.
-      placeholder=document.createElement('div');
-      placeholder.className='stat-toggle-row drag-placeholder';
-      placeholder.style.height=row.getBoundingClientRect().height+'px';
-      row.parentElement.insertBefore(placeholder,row);
-      handle.setPointerCapture?.(pointerId);
-      if(navigator.vibrate) navigator.vibrate(20);
-    },300);
-  });
-  handle.addEventListener('pointermove',move);
-  handle.addEventListener('pointerup',finish);
-  handle.addEventListener('pointercancel',finish);
-  handle.addEventListener('lostpointercapture',()=>{ if(dragging) finish(); else clearTimer(); });
-  handle.addEventListener('pointerleave',()=>{ if(!dragging) clearTimer(); });
+  const handle=row.querySelector('.stat-drag-handle'); let timer=null,dragging=false;
+  const clear=()=>{if(timer){clearTimeout(timer);timer=null;}};
+  handle.addEventListener('pointerdown',e=>{e.preventDefault();handle.setPointerCapture?.(e.pointerId);timer=setTimeout(()=>{dragging=true;row.classList.add('dragging');if(navigator.vibrate)navigator.vibrate(20);},420);});
+  handle.addEventListener('pointermove',e=>{if(!dragging)return;const list=row.parentElement;const rows=[...list.querySelectorAll('.stat-toggle-row')].filter(r=>r!==row);const target=rows.find(r=>e.clientY<r.getBoundingClientRect().top+r.getBoundingClientRect().height/2);if(target)list.insertBefore(row,target);else if(rows.length)list.appendChild(row);});
+  const finish=()=>{clear();if(!dragging)return;dragging=false;row.classList.remove('dragging');const ids=[...row.parentElement.querySelectorAll('.stat-toggle-row')].map(r=>r.dataset.statId);state.statOrder[group]=ids.concat(state.statOrder[group].filter(x=>!ids.includes(x)));save();renderStatTiles();renderStatSettingsList();};
+  handle.addEventListener('pointerup',finish);handle.addEventListener('pointercancel',finish);
 }
 function toggleStatEnabled(id){state.statEnabled[id]=!state.statEnabled[id];if(!state.statEnabled[id]&&state.pinnedStats.includes(id))state.pinnedStats=state.pinnedStats.filter(p=>p!==id);save();renderStatTiles();renderStatSettingsList();}
 function renderOrgasmCountingSettings(){const wet=document.getElementById('count-wet-dreams-toggle'),ruined=document.getElementById('count-ruined-orgasms-toggle');if(wet){wet.classList.toggle('on',!!state.countWetDreamsAsOrgasms);wet.title=state.countWetDreamsAsOrgasms?'On':'Off';}if(ruined){ruined.classList.toggle('on',!!state.countRuinedOrgasmsAsOrgasms);ruined.title=state.countRuinedOrgasmsAsOrgasms?'On':'Off';}}
@@ -2790,7 +2724,96 @@ function importData(input){
   reader.readAsText(file);
 }
 
-function exportImage(){ showToast('screenshot the calendar to share!'); }
+async function exportImage(){
+  const source=document.getElementById('view-calendar');
+  if(!source){ showToast('nothing to export'); return; }
+  if(typeof XMLSerializer==='undefined'){ showToast('image export is not supported here'); return; }
+
+  showToast('making your image...');
+  try{
+    const clone=source.cloneNode(true);
+    const rect=source.getBoundingClientRect();
+    const width=Math.max(320,Math.ceil(rect.width));
+    const height=Math.max(240,Math.ceil(rect.height));
+    const scale=2;
+
+    // The exported image is a clean journal card, not a browser screenshot.
+    clone.querySelectorAll('.export-btn,.cal-view-tab-bar').forEach(el=>el.remove());
+    clone.style.width=width+'px';
+    clone.style.boxSizing='border-box';
+    clone.style.padding='18px';
+    clone.style.margin='0';
+    clone.style.background=getComputedStyle(document.body).background;
+    clone.style.color=getComputedStyle(document.body).color;
+    clone.style.borderRadius='16px';
+
+    // Inline computed styles so the cloned DOM can render inside the SVG.
+    const copyStyles=(original,copy)=>{
+      if(original.nodeType!==1) return;
+      const cs=getComputedStyle(original);
+      let css='';
+      for(let i=0;i<cs.length;i++){
+        const prop=cs[i];
+        css+=prop+':'+cs.getPropertyValue(prop)+';';
+      }
+      copy.setAttribute('style',css);
+      copy.style.boxSizing='border-box';
+      for(let i=0;i<original.children.length;i++) copyStyles(original.children[i],copy.children[i]);
+    };
+    copyStyles(source,clone);
+    clone.style.width=width+'px';
+    clone.style.padding='18px';
+    clone.style.margin='0';
+
+    // Turn local images into data URLs so they survive the SVG/data-URL step.
+    const imageTasks=[...clone.querySelectorAll('img')].map(async (img)=>{
+      const original=[...source.querySelectorAll('img')].find(x=>x.alt===img.alt && x.src===img.src);
+      const live=original||img;
+      if(!live.complete || !live.naturalWidth) return;
+      try{
+        const c=document.createElement('canvas');
+        c.width=live.naturalWidth; c.height=live.naturalHeight;
+        c.getContext('2d').drawImage(live,0,0);
+        img.setAttribute('src',c.toDataURL('image/png'));
+      }catch(e){ /* leave image as-is if the browser blocks canvas access */ }
+    });
+    await Promise.all(imageTasks);
+
+    const serializer=new XMLSerializer();
+    const body=serializer.serializeToString(clone);
+    const bg=getComputedStyle(document.body).backgroundColor || '#ffffff';
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xhtml="http://www.w3.org/1999/xhtml" width="${width*scale}" height="${height*scale}" viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="${bg.replace(/"/g,'&quot;')}"/><foreignObject x="0" y="0" width="${width}" height="${height}">${body}</foreignObject></svg>`;
+
+    const blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'});
+    const url=URL.createObjectURL(blob);
+    const image=new Image();
+    await new Promise((resolve,reject)=>{
+      image.onload=resolve;
+      image.onerror=()=>reject(new Error('image render failed'));
+      image.src=url;
+    });
+
+    const canvas=document.createElement('canvas');
+    canvas.width=width*scale; canvas.height=height*scale;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(image,0,0,canvas.width,canvas.height);
+    URL.revokeObjectURL(url);
+
+    const png=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+    if(!png) throw new Error('png creation failed');
+    const downloadUrl=URL.createObjectURL(png);
+    const a=document.createElement('a');
+    const view=state.calView||'month';
+    a.href=downloadUrl;
+    a.download=`puplock-${view}-${fmtDate(new Date())}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(downloadUrl),1000);
+    showToast('image exported!');
+  }catch(err){
+    console.error('image export failed',err);
+    showToast('could not export image — try again');
+  }
+}
 
 init();
 </script>
