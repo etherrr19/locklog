@@ -2730,8 +2730,8 @@ async function exportImage(){
 
   showToast('making your image...');
   try{
-    // Load html2canvas once.  We render the actual visible calendar rather
-    // than moving a cloned copy off-screen; Firefox handles this much better.
+    // Load html2canvas once. The export is a dedicated share layout rather
+    // than a screenshot of the current dashboard/page arrangement.
     if(typeof window.html2canvas!=='function'){
       await new Promise((resolve,reject)=>{
         const existing=document.querySelector('script[data-puplock-html2canvas]');
@@ -2752,39 +2752,123 @@ async function exportImage(){
         setTimeout(()=>reject(new Error('image renderer timed out')),10000);
       });
     }
-
     if(typeof window.html2canvas!=='function') throw new Error('image renderer unavailable');
 
-    // Temporarily hide the share button visually while html2canvas renders.
-    // It is restored immediately afterward.
-    const shareButton=source.querySelector('.export-btn');
-    if(shareButton) shareButton.style.visibility='hidden';
+    const stats=computeStats();
+    const exportRoot=document.createElement('div');
+    exportRoot.className='app';
+    exportRoot.style.position='fixed';
+    exportRoot.style.left='-100000px';
+    exportRoot.style.top='0';
+    exportRoot.style.width='430px';
+    exportRoot.style.maxWidth='430px';
+    exportRoot.style.minHeight='0';
+    exportRoot.style.margin='0';
+    exportRoot.style.padding='0 12px 18px';
+    const bodyStyle=getComputedStyle(document.body);
+    exportRoot.style.background=bodyStyle.background || bodyStyle.backgroundImage || bodyStyle.backgroundColor || '#ffffff';
+    exportRoot.style.color=getComputedStyle(document.body).color;
+    exportRoot.style.zIndex='-1';
+
+    // ── branding ──
+    const header=document.createElement('div');
+    header.className='header';
+    header.style.padding='14px 0 10px';
+    const title=document.createElement('div');
+    title.className='header-title';
+    title.innerHTML=`pup lock <img class="header-logo" src="icons/logo-main.png" alt="pup lock logo">`;
+    header.appendChild(title);
+    exportRoot.appendChild(header);
+
+    // ── all enabled stats, grouped into rows ──
+    const makeStatRow=(group)=>{
+      const defs=getOrderedStatDefs(group);
+      if(!defs.length) return null;
+      const row=document.createElement('div');
+      row.className='stat-page';
+      row.style.minWidth='0';
+      row.style.padding='4px 0 0';
+      row.style.overflow='visible';
+      row.style.display='flex';
+      row.style.gap='9px';
+      defs.forEach(def=>{
+        const tile=document.createElement('div');
+        tile.className='stat-tile';
+        tile.style.cursor='default';
+        tile.innerHTML=`<div class="stat-tile-icon">${statIconHtml(def)}</div><div class="stat-tile-val">${def.fmt(stats[def.id])}</div><div class="stat-tile-lbl">${def.label}</div>`;
+        row.appendChild(tile);
+      });
+      return row;
+    };
+
+    ['stats','streaks','additional'].forEach(group=>{
+      const row=makeStatRow(group);
+      if(row) exportRoot.appendChild(row);
+    });
+
+    // ── month title + existing legend ──
+    const monthHead=document.createElement('div');
+    monthHead.className='month-nav';
+    monthHead.style.padding='18px 0 4px';
+    const monthLabel=document.createElement('div');
+    monthLabel.className='month-label';
+    monthLabel.textContent=MONTHS[currentMonth]+' '+currentYear;
+    monthHead.appendChild(monthLabel);
+    exportRoot.appendChild(monthHead);
+
+    const legend=source.querySelector('.legend');
+    if(legend){
+      const legendClone=legend.cloneNode(true);
+      legendClone.style.padding='6px 0 10px';
+      exportRoot.appendChild(legendClone);
+    }
+
+    // ── calendar only: no arrows, view tabs, or share button ──
+    const calendarSection=document.createElement('div');
+    const monthView=source.querySelector('#calview-month');
+    if(monthView){
+      const monthClone=monthView.cloneNode(true);
+      monthClone.style.display='block';
+      monthClone.style.width='100%';
+      calendarSection.appendChild(monthClone);
+    }
+    exportRoot.appendChild(calendarSection);
+
+    document.body.appendChild(exportRoot);
+
+    // Ensure local logo/stat icons are loaded before rasterizing.
+    const images=[...exportRoot.querySelectorAll('img')];
+    await Promise.all(images.map(img=>{
+      if(img.complete && img.naturalWidth) return Promise.resolve();
+      return new Promise(resolve=>{ img.onload=resolve; img.onerror=resolve; });
+    }));
 
     let canvas;
     try{
-      canvas=await window.html2canvas(source,{
-        backgroundColor:getComputedStyle(document.body).backgroundColor || '#ffffff',
+      canvas=await window.html2canvas(exportRoot,{
+        backgroundColor:null,
         scale:2,
         useCORS:true,
         allowTaint:true,
         logging:false,
         imageTimeout:3000,
-        ignoreElements:el=>!!(el.classList && el.classList.contains('cal-view-tab-bar'))
+        width:430,
+        windowWidth:430,
+        scrollX:0,
+        scrollY:0
       });
     }finally{
-      if(shareButton) shareButton.style.visibility='';
+      exportRoot.remove();
     }
 
     if(!canvas || !canvas.width || !canvas.height) throw new Error('empty image');
-
     const png=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
     if(!png) throw new Error('png creation failed');
 
     const downloadUrl=URL.createObjectURL(png);
     const a=document.createElement('a');
-    const view=state.calView||'month';
     a.href=downloadUrl;
-    a.download=`puplock-${view}-${fmtDate(new Date())}.png`;
+    a.download=`puplock-${fmtDate(new Date(currentYear,currentMonth,1))}.png`;
     document.body.appendChild(a);
     a.click();
     a.remove();
