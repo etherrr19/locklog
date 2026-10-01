@@ -702,6 +702,14 @@ body {
     <div class="settings-section">
       <div class="settings-title"><img src="icons/icon-stats.png" alt="">stats</div>
       <div id="stat-settings-list"></div>
+      <div class="toggle-row" style="margin-top:12px">
+        <div class="toggle-label">Count wet dreams as orgasms</div>
+        <button class="toggle" id="count-wet-dreams-toggle" onclick="toggleOrgasmCountingSetting('wetDreams')" aria-label="Count wet dreams as orgasms"></button>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-label">Count ruined orgasms as orgasms</div>
+        <button class="toggle" id="count-ruined-orgasms-toggle" onclick="toggleOrgasmCountingSetting('ruined')" aria-label="Count ruined orgasms as orgasms"></button>
+      </div>
     </div>
     <div class="settings-section">
       <div class="settings-title"><img src="icons/icon-theme.png" alt="">theme</div>
@@ -879,18 +887,16 @@ const DEFAULT_CAGES = [
 ];
 
 const STAT_DEFS = [
-  {id:'tracked',       iconImg:'icons/icon-calendar.png',       label:'days tracked',          fmt:v=>v+'d'},
-  {id:'locked',        iconImg:'icons/icon-lock.png',           label:'days locked',           fmt:v=>v+'d'},
-  {id:'unlocked',      iconImg:'icons/icon-unlock.png',         label:'days unlocked',         fmt:v=>v+'d'},
-  {id:'orgasms',       iconImg:'icons/icon-droplet-orgasm.png', label:'orgasms',               fmt:v=>v},
-  {id:'ruined',        iconImg:'icons/icon-ruined.png',         label:'ruined',                fmt:v=>v},
-  {id:'edges',         iconImg:'icons/icon-flame.png',          label:'edges',                 fmt:v=>v},
-  {id:'forbidden',     iconImg:'icons/icon-forbidden.png',      label:'forbidden',             fmt:v=>v},
-  {id:'wetDreams',     iconImg:'icons/icon-wet-dream.png',      label:'wet dreams',            fmt:v=>v},
-  {id:'lockStreak',    iconImg:'icons/icon-stopwatch.png',      label:'current lock streak',   fmt:v=>v+'d'},
-  {id:'longestLock',   iconImg:'icons/icon-trophy.png',         label:'longest lock streak',   fmt:v=>v+'d'},
-  {id:'sinceOrgasm',   iconImg:'icons/icon-droplet-orgasm.png', label:'days since last orgasm',fmt:v=>v+'d'},
-  {id:'longestDenial', iconImg:'icons/icon-ribbon.png',         label:'longest denial streak', fmt:v=>v+'d'},
+  {id:'daysLogged',      iconImg:'icons/icon-calendar.png',       label:'days logged',           fmt:v=>v+'d', defaultEnabled:true},
+  {id:'daysLocked',      iconImg:'icons/icon-lock.png',           label:'days locked',           fmt:v=>v+'d', defaultEnabled:true},
+  {id:'lockRate',        iconImg:'icons/icon-lock.png',           label:'lock rate',             fmt:v=>v+'%', defaultEnabled:true},
+  {id:'totalOrgasms',    iconImg:'icons/icon-droplet-orgasm.png', label:'total orgasms',         fmt:v=>v, defaultEnabled:true},
+  {id:'lockStreak',     iconImg:'icons/icon-stopwatch.png',      label:'current lock streak',   fmt:v=>v+'d', defaultEnabled:true},
+  {id:'longestLock',    iconImg:'icons/icon-trophy.png',         label:'longest lock streak',   fmt:v=>v+'d', defaultEnabled:true},
+  {id:'sinceOrgasm',    iconImg:'icons/icon-droplet-orgasm.png', label:'days since orgasm',     fmt:v=>v+'d', defaultEnabled:true},
+  {id:'longestDenial',  iconImg:'icons/icon-ribbon.png',         label:'longest denial streak', fmt:v=>v+'d', defaultEnabled:true},
+  {id:'wetDreams',      iconImg:'icons/icon-wet-dream.png',      label:'wet dreams',            fmt:v=>v, defaultEnabled:false},
+  {id:'handsfreeOrgasms',iconImg:'icons/icon-handsfree.png',     label:'hands-free orgasms',    fmt:v=>v, defaultEnabled:false},
 ];
 function statIconHtml(s){ return `<img src="${s.iconImg}" alt="">`; }
 
@@ -1025,8 +1031,10 @@ function getDefaultState(){
     identityTags: ['pup'],
     customIdentityTags: [],
     customStickers: [],
-    statEnabled: Object.fromEntries(STAT_DEFS.map(s=>[s.id,true])),
+    statEnabled: Object.fromEntries(STAT_DEFS.map(s=>[s.id,s.defaultEnabled!==false])),
     pinnedStats: [],
+    countWetDreamsAsOrgasms: false,
+    countRuinedOrgasmsAsOrgasms: true,
     calView: 'month',
     weekOffset: 0,
     yearView: null,
@@ -1083,9 +1091,13 @@ function load(){
     if(s){
       const p=JSON.parse(s);
       state={...state,...p};
-      STAT_DEFS.forEach(sd=>{ if(state.statEnabled[sd.id]===undefined) state.statEnabled[sd.id]=true; });
+      STAT_DEFS.forEach(sd=>{ if(state.statEnabled[sd.id]===undefined) state.statEnabled[sd.id]=sd.defaultEnabled!==false; });
+      if(state.countWetDreamsAsOrgasms===undefined) state.countWetDreamsAsOrgasms=false;
+      if(state.countRuinedOrgasmsAsOrgasms===undefined) state.countRuinedOrgasmsAsOrgasms=true;
       if(!state.cages||!state.cages.length) state.cages=JSON.parse(JSON.stringify(DEFAULT_CAGES));
       if(!state.customThemes) state.customThemes=[];
+      state.pinnedStats=(state.pinnedStats||[]).filter(id=>STAT_DEFS.some(sd=>sd.id===id));
+      state.pinnedStats=(state.pinnedStats||[]).filter(id=>STAT_DEFS.some(sd=>sd.id===id));
       return;
     }
     migrateOldData();
@@ -1474,6 +1486,7 @@ async function processPendingSync(){
       const settings={
         density:state.density, identityTags:state.identityTags, customIdentityTags:state.customIdentityTags,
         customStickers:state.customStickers, statEnabled:state.statEnabled, pinnedStats:state.pinnedStats,
+        countWetDreamsAsOrgasms:state.countWetDreamsAsOrgasms, countRuinedOrgasmsAsOrgasms:state.countRuinedOrgasmsAsOrgasms,
         customThemes:state.customThemes, activeCustomThemeId:state.activeCustomThemeId, cages:state.cages,
       };
       const {error:profileErr}=await sb.from('profiles').update({
@@ -1492,6 +1505,7 @@ async function processPendingSync(){
       const settings={
         density:state.density, identityTags:state.identityTags, customIdentityTags:state.customIdentityTags,
         customStickers:state.customStickers, statEnabled:state.statEnabled, pinnedStats:state.pinnedStats,
+        countWetDreamsAsOrgasms:state.countWetDreamsAsOrgasms, countRuinedOrgasmsAsOrgasms:state.countRuinedOrgasmsAsOrgasms,
         customThemes:state.customThemes, activeCustomThemeId:state.activeCustomThemeId, cages:state.cages,
       };
       const {error}=await sb.from('profiles').upsert({
@@ -1634,7 +1648,9 @@ async function loadCloudData(){
     state.days = daysObj;
   }
 
-  STAT_DEFS.forEach(sd=>{ if(state.statEnabled[sd.id]===undefined) state.statEnabled[sd.id]=true; });
+  STAT_DEFS.forEach(sd=>{ if(state.statEnabled[sd.id]===undefined) state.statEnabled[sd.id]=sd.defaultEnabled!==false; });
+      if(state.countWetDreamsAsOrgasms===undefined) state.countWetDreamsAsOrgasms=false;
+      if(state.countRuinedOrgasmsAsOrgasms===undefined) state.countRuinedOrgasmsAsOrgasms=true;
   if(!state.cages||!state.cages.length) state.cages=JSON.parse(JSON.stringify(DEFAULT_CAGES));
   if(!state.customThemes) state.customThemes=[];
   if(state.hasOwner===undefined) state.hasOwner=true;
@@ -1673,8 +1689,9 @@ function refreshAllViews(){
   applyActiveCustomTheme();
   renderCurrentCalView(); renderStatTiles(); renderHeaderPins();
   const sTog=document.getElementById('sticker-toggle'); if(sTog) sTog.classList.toggle('on',state.showStickers);
+  renderOrgasmCountingSettings();
   if(document.getElementById('view-settings').classList.contains('active')){
-    renderCageSettings(); renderPaletteGrid(); renderStatSettingsList(); renderIdentityTags(); renderOwnerToggle(); updateBulkFillVisibility();
+    renderCageSettings(); renderPaletteGrid(); renderStatSettingsList(); renderOrgasmCountingSettings(); renderIdentityTags(); renderOwnerToggle(); updateBulkFillVisibility();
   }
 }
 
@@ -1720,52 +1737,77 @@ function computeStats(){
   const entries=Object.entries(state.days)
     .filter(([k])=>!startDt||parseDate(k)>=startDt)
     .sort(([a],[b])=>a<b?-1:1);
+  const loggedDates=new Set(entries.map(([k])=>k));
 
-  let tracked=0;
-  if(startDt){ tracked=Math.max(0,Math.floor((TODAY-startDt)/86400000)+1); }
-
-  let locked=0,unlocked=0,orgasms=0,ruined=0,edges=0,forbidden=0,wetDreams=0;
+  const daysLogged=entries.length;
+  let daysLocked=0, normalOrgasms=0, ruined=0, forbidden=0, wetDreams=0, handsfreeOrgasms=0;
   entries.forEach(([,v])=>{
-    if(v.cage&&v.cage!=='none') locked++; else unlocked++;
-    if(v.orgasm==='orgasm')    orgasms++;
-    if(v.orgasm==='ruined')    ruined++;
+    if(v.cage&&v.cage!=='none') daysLocked++;
+    if(v.orgasm==='orgasm') normalOrgasms++;
+    if(v.orgasm==='ruined') ruined++;
     if(v.orgasm==='forbidden') forbidden++;
-    if(v.stickers&&v.stickers.includes('edge')) edges++;
     if(v.stickers&&v.stickers.includes('wet-dream')) wetDreams++;
+    if(v.stickers&&v.stickers.includes('handsfree')) handsfreeOrgasms++;
   });
-  // comprehensive orgasm total
-  const orgasmsTotal=orgasms+ruined+forbidden+wetDreams;
+  // Every recorded orgasm type contributes to the comprehensive total,
+  // regardless of whether ruined/wet-dream events count as "orgasms" for denial.
+  const totalOrgasms=normalOrgasms+ruined+forbidden+wetDreams;
+  const lockRate=daysLogged?Math.round(daysLocked/daysLogged*100):0;
 
+  // Current lock streak: every calendar day must have a logged, locked entry.
   let lockStreak=0;
-  for(let i=0;i<730;i++){
-    const d=new Date(TODAY); d.setDate(d.getDate()-i);
-    if(startDt&&d<startDt) break;
-    const ds=fmtDate(d); const day=state.days[ds];
-    if(day&&day.cage&&day.cage!=='none') lockStreak++;
-    else if(i>0) break;
+  if(loggedDates.has(fmtDate(TODAY))){
+    for(let i=0;i<730;i++){
+      const d=new Date(TODAY); d.setDate(d.getDate()-i);
+      if(startDt&&d<startDt) break;
+      const ds=fmtDate(d), day=state.days[ds];
+      if(day&&day.cage&&day.cage!=='none') lockStreak++;
+      else break;
+    }
   }
-  let longestLock=0,curLock=0;
-  entries.forEach(([,v])=>{
-    if(v.cage&&v.cage!=='none'){curLock++;longestLock=Math.max(longestLock,curLock);}
-    else curLock=0;
+
+  // Longest lock streak: missing/unlogged calendar days break the streak.
+  let longestLock=0,curLock=0,prevDate=null;
+  entries.forEach(([ds,v])=>{
+    const contiguous=prevDate && (parseDate(ds)-parseDate(prevDate)===86400000);
+    if(v.cage&&v.cage!=='none' && (curLock===0 || contiguous)) curLock++;
+    else curLock=(v.cage&&v.cage!=='none')?1:0;
+    longestLock=Math.max(longestLock,curLock);
+    prevDate=ds;
   });
 
-  let sinceOrgasm=tracked;
+  // "Since orgasm" is a calendar-day distance. Only the configured events reset it.
+  let sinceOrgasm=0;
   for(let i=0;i<730;i++){
     const d=new Date(TODAY); d.setDate(d.getDate()-i);
-    if(startDt&&d<startDt){sinceOrgasm=i;break;}
-    const ds=fmtDate(d); const day=state.days[ds];
-    if(day&&(day.orgasm==='orgasm'||day.orgasm==='ruined')){sinceOrgasm=i;break;}
+    if(startDt&&d<startDt){ sinceOrgasm=i; break; }
+    const ds=fmtDate(d), day=state.days[ds];
+    if(day){
+      const wetDream = day.stickers&&day.stickers.includes('wet-dream');
+      const resets = day.orgasm==='orgasm' ||
+        (day.orgasm==='ruined' && state.countRuinedOrgasmsAsOrgasms) ||
+        (wetDream && state.countWetDreamsAsOrgasms);
+      if(resets){ sinceOrgasm=i; break; }
+    }
+    sinceOrgasm=i+1;
   }
 
-  let longestDenial=0,curDenial=0;
-  entries.forEach(([,v])=>{
-    if(v.orgasm==='orgasm'||v.orgasm==='ruined'){longestDenial=Math.max(longestDenial,curDenial);curDenial=0;}
+  // Denial streak is based only on logged days; a missing day breaks it.
+  let longestDenial=0,curDenial=0,prevLogged=null;
+  entries.forEach(([ds,v])=>{
+    const contiguous=prevLogged && (parseDate(ds)-parseDate(prevLogged)===86400000);
+    const wetDream=v.stickers&&v.stickers.includes('wet-dream');
+    const endsDenial = v.orgasm==='orgasm' ||
+      (v.orgasm==='ruined' && state.countRuinedOrgasmsAsOrgasms) ||
+      (wetDream && state.countWetDreamsAsOrgasms);
+    if(!contiguous) curDenial=0;
+    if(endsDenial) curDenial=0;
     else curDenial++;
+    longestDenial=Math.max(longestDenial,curDenial);
+    prevLogged=ds;
   });
-  longestDenial=Math.max(longestDenial,curDenial);
 
-  return {tracked,locked,unlocked,orgasms:orgasmsTotal,ruined,edges,forbidden,wetDreams,lockStreak,longestLock,sinceOrgasm,longestDenial};
+  return {daysLogged,daysLocked,lockRate,totalOrgasms,wetDreams,handsfreeOrgasms,lockStreak,longestLock,sinceOrgasm,longestDenial};
 }
 
 // ══════════════════════════════════════
@@ -1819,6 +1861,17 @@ function toggleStatEnabled(id){
   state.statEnabled[id]=!state.statEnabled[id];
   if(!state.statEnabled[id]&&state.pinnedStats.includes(id)) state.pinnedStats=state.pinnedStats.filter(p=>p!==id);
   save(); renderStatTiles(); renderStatSettingsList();
+}
+function renderOrgasmCountingSettings(){
+  const wet=document.getElementById('count-wet-dreams-toggle');
+  const ruined=document.getElementById('count-ruined-orgasms-toggle');
+  if(wet){ wet.classList.toggle('on',!!state.countWetDreamsAsOrgasms); wet.title=state.countWetDreamsAsOrgasms?'On':'Off'; }
+  if(ruined){ ruined.classList.toggle('on',!!state.countRuinedOrgasmsAsOrgasms); ruined.title=state.countRuinedOrgasmsAsOrgasms?'On':'Off'; }
+}
+function toggleOrgasmCountingSetting(type){
+  if(type==='wetDreams') state.countWetDreamsAsOrgasms=!state.countWetDreamsAsOrgasms;
+  if(type==='ruined') state.countRuinedOrgasmsAsOrgasms=!state.countRuinedOrgasmsAsOrgasms;
+  save(); renderStatTiles(); renderStatSettingsList(); renderOrgasmCountingSettings();
 }
 
 // ══════════════════════════════════════
@@ -2587,7 +2640,7 @@ function switchView(v){
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
   document.getElementById('view-'+v).classList.add('active');
   document.getElementById('nav-'+v).classList.add('active');
-  if(v==='settings'){ renderCageSettings(); renderPaletteGrid(); renderStatSettingsList(); renderIdentityTags(); renderOwnerToggle(); updateBulkFillVisibility(); }
+  if(v==='settings'){ renderCageSettings(); renderPaletteGrid(); renderStatSettingsList(); renderOrgasmCountingSettings(); renderIdentityTags(); renderOwnerToggle(); updateBulkFillVisibility(); }
 }
 function exportData(){
   const json=JSON.stringify(state, null, 2);
@@ -2612,14 +2665,16 @@ function importData(input){
       state={...state,...parsed};
       if(!state.customThemes) state.customThemes=[];
       if(!state.cages||!state.cages.length) state.cages=JSON.parse(JSON.stringify(DEFAULT_CAGES));
-      STAT_DEFS.forEach(sd=>{ if(state.statEnabled[sd.id]===undefined) state.statEnabled[sd.id]=true; });
+      STAT_DEFS.forEach(sd=>{ if(state.statEnabled[sd.id]===undefined) state.statEnabled[sd.id]=sd.defaultEnabled!==false; });
+  if(state.countWetDreamsAsOrgasms===undefined) state.countWetDreamsAsOrgasms=false;
+  if(state.countRuinedOrgasmsAsOrgasms===undefined) state.countRuinedOrgasmsAsOrgasms=true;
       save();
       document.body.setAttribute('data-theme', state.theme||'soft-puppy');
       document.body.setAttribute('data-density', state.density||'default');
       applyActiveCustomTheme();
       renderCurrentCalView(); renderStatTiles(); renderHeaderPins();
       if(document.getElementById('view-settings').classList.contains('active')){
-        renderCageSettings(); renderPaletteGrid(); renderStatSettingsList(); renderIdentityTags(); renderOwnerToggle(); updateBulkFillVisibility();
+        renderCageSettings(); renderPaletteGrid(); renderStatSettingsList(); renderOrgasmCountingSettings(); renderIdentityTags(); renderOwnerToggle(); updateBulkFillVisibility();
       }
       showToast('data imported successfully!');
       if(currentUser){
