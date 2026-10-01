@@ -372,13 +372,20 @@ body {
 .pill.sel-ruined { background:var(--c-ruined); border-color:var(--c-ruined-d); }
 .pill.sel-forbid { background:var(--c-forbid); border-color:var(--c-forbid-d); }
 .pill.sel-def    { background:var(--c-lav);    border-color:var(--c-accent); }
-.sticker-grid { display:flex; flex-wrap:wrap; gap:10px; padding-bottom:4px; }
-.sticker-pick { width:52px; height:52px; border-radius:12px; background:var(--c-white); border:2px solid transparent; display:flex; align-items:center; justify-content:center; font-size:22px; cursor:pointer; box-shadow:0 1px 4px var(--c-shadow); transition:all 0.15s; position:relative; flex-shrink:0; margin-bottom:18px; }
-.sticker-pick img { width:28px; height:28px; }
-.sticker-pick:active { transform:scale(0.88); }
+.sticker-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px 10px; padding-bottom:4px; }
+.sticker-pick { width:100%; height:auto; aspect-ratio:1; border-radius:14px; background:var(--c-white); border:2px solid transparent; display:flex; align-items:center; justify-content:center; font-size:34px; cursor:pointer; box-shadow:0 1px 4px var(--c-shadow); transition:all 0.15s; position:relative; min-width:0; margin-bottom:10px; }
+.sticker-pick img { width:52px; height:52px; object-fit:contain; }
+.sticker-pick:active { transform:scale(0.92); }
 .sticker-pick.selected { border-color:var(--c-accent); background:var(--c-lav); }
-.sticker-label { position:absolute; bottom:-16px; left:50%; transform:translateX(-50%); font-size:8px; font-weight:800; color:var(--c-textlt); white-space:nowrap; pointer-events:none; max-width:58px; overflow:hidden; text-overflow:ellipsis; text-align:center; }
-.sticker-add-btn { width:52px; height:52px; border-radius:12px; background:var(--c-white); border:2px dashed var(--c-border); display:flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer; color:var(--c-textlt); transition:all 0.15s; flex-shrink:0; margin-bottom:18px; }
+.sticker-label { position:absolute; bottom:-11px; left:50%; transform:translateX(-50%); font-size:8px; font-weight:800; color:var(--c-textlt); white-space:nowrap; pointer-events:none; max-width:90%; overflow:hidden; text-overflow:ellipsis; text-align:center; }
+.sticker-add-btn { width:100%; height:auto; aspect-ratio:1; border-radius:14px; background:var(--c-white); border:2px dashed var(--c-border); display:flex; align-items:center; justify-content:center; font-size:34px; cursor:pointer; color:var(--c-textlt); transition:all 0.15s; min-width:0; margin-bottom:10px; }
+.sticker-add-btn:active { transform:scale(0.92); }
+@media (min-width:600px) {
+  .sticker-grid { grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px 8px; }
+  .sticker-pick, .sticker-add-btn { margin-bottom:10px; }
+  .sticker-pick { font-size:28px; }
+  .sticker-pick img { width:44px; height:44px; }
+}
 .sticker-add-btn:active { transform:scale(0.88); }
 .notes-input { width:100%; border:2px solid var(--c-border); border-radius:14px; padding:10px 14px; font-family:'Nunito',sans-serif; font-size:14px; color:var(--c-text); background:var(--c-white); resize:none; outline:none; transition:border-color 0.15s; }
 .notes-input:focus { border-color:var(--c-accent); }
